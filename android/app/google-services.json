@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "993854232725",
+    "project_id": "boundless-1304c",
+    "storage_bucket": "boundless-1304c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993854232725:android:3bf67ad096961de117239c",
+        "android_client_info": {
+          "package_name": "com.example.boundless"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhxHJKTvHPPZjmbV_915stx2SS3B2P8Ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
