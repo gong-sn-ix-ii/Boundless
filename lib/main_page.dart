@@ -4,6 +4,7 @@ import 'pages/auction_page.dart';
 import 'pages/profile_page.dart';
 
 
+
 class MainPage extends StatefulWidget {
   @override
   _MainPageState createState() => _MainPageState();
@@ -16,6 +17,7 @@ class _MainPageState extends State<MainPage> {
     FeedPage(),
     AuctionPage(),
     ProfilePage(),
+    //Chat(), // Assuming you have a Chat page
   ];
 
   void _onItemTapped(int index) {

@@ -1,33 +1,129 @@
+import 'package:boundless/Services/Service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
+import 'package:boundless/CreatePostPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../MessagesPage.dart';
+import '../components/PostCard.dart';
+
 class FeedPage extends StatefulWidget {
+  const FeedPage({super.key});
+
   @override
   _FeedPageState createState() => _FeedPageState();
 }
 
-class _FeedPageState extends State<FeedPage> {
-  final List<Map<String, String>> posts = [
-    {
-      'username': 'john_doe',
-      'imageUrl': 'https://picsum.photos/400/300?random=1',
-      'caption':
-          'Beautiful sunset! This is a very long caption that should be trimmed down to two lines and then expandable.',
-    },
-    {
-      'username': 'jane_smith',
-      'imageUrl': 'https://picsum.photos/400/300?random=2',
-      'caption': 'Amazing view!',
-    },
-    {
-      'username': 'The_Awesome',
-      'imageUrl': 'https://picsum.photos/400/300?random=3',
-      'caption':
-          'AWESOME! This caption is way too long so it needs to be collapsed until the user expands it to view more text about the awesome experience!',
-    },
-  ];
 
-  final Map<int, bool> _isExpandedMap = {};
+class _FeedPageState extends State<FeedPage> {
+  // ดึง UID ของผู้ใช้ปัจจุบันมาเก็บไว้
+  final String? _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+  final ScrollController _scrollController = ScrollController();
+
+  // --- State สำหรับจัดการ Pagination ---
+  bool _isLoading = false;
+  bool _hasMoreData = true;
+  List<DocumentSnapshot> _postDocs = [];
+  DocumentSnapshot? _lastDocument;
+  List<String> _hiddenPostIds = [];
+  final int _initialLimit = 2; // โหลดครั้งแรก 6 โพสต์
+  final int _nextLimit = 3;    // โหลดครั้งถัดไป 3 โพสต์
+
+@override
+  void initState() {
+    super.initState();
+    _fetchInitialData();
+
+    // เพิ่ม Listener ให้กับ ScrollController
+    _scrollController.addListener(() {
+      // ตรวจสอบว่าเลื่อนถึงท้ายสุดของหน้าจอหรือไม่
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoading &&
+          _hasMoreData) {
+        _fetchMorePosts();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchInitialData() async {
+    if (_currentUserUid == null) return;
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. ดึงรายการโพสต์ที่ถูกซ่อนก่อน
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUserUid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>?;
+        _hiddenPostIds = List<String>.from(userData?['hiddenPosts'] ?? []);
+      }
+
+      // 2. ดึงโพสต์ชุดแรก
+      QuerySnapshot postSnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .orderBy('timestamp', descending: true)
+          .limit(_initialLimit)
+          .get();
+
+      final fetchedDocs = postSnapshot.docs;
+
+      // กรองโพสต์ที่ซ่อนไว้ออก
+      final visibleDocs = fetchedDocs.where((post) => !_hiddenPostIds.contains(post.id)).toList();
+
+      if (mounted) {
+        setState(() {
+          _postDocs = visibleDocs;
+          if (fetchedDocs.isNotEmpty) {
+            _lastDocument = fetchedDocs.last;
+          }
+          _isLoading = false;
+          // ถ้าจำนวนที่ดึงมาได้น้อยกว่าที่ขอไป แสดงว่าไม่มีข้อมูลเพิ่มแล้ว
+          _hasMoreData = fetchedDocs.length == _initialLimit;
+        });
+      }
+    } catch (e) {
+      print("Error fetching initial data: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchMorePosts() async {
+    if (_isLoading || !_hasMoreData) return;
+    setState(() => _isLoading = true);
+
+    try {
+      QuerySnapshot postSnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .orderBy('timestamp', descending: true)
+          .startAfterDocument(_lastDocument!) // เริ่มดึงต่อจากเอกสารตัวสุดท้าย
+          .limit(_nextLimit)
+          .get();
+
+      final fetchedDocs = postSnapshot.docs;
+      final visibleDocs = fetchedDocs.where((post) => !_hiddenPostIds.contains(post.id)).toList();
+
+      if (mounted) {
+        setState(() {
+          _postDocs.addAll(visibleDocs);
+          if (fetchedDocs.isNotEmpty) {
+            _lastDocument = fetchedDocs.last;
+          }
+          _isLoading = false;
+          _hasMoreData = fetchedDocs.length == _nextLimit;
+        });
+      }
+    } catch (e) {
+      print("Error fetching more posts: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,184 +142,45 @@ class _FeedPageState extends State<FeedPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ChatPage()),
+                MaterialPageRoute(builder: (context) => MessagesPage()),
               );
             },
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: posts.length,
-        itemBuilder: (context, index) {
-          final post = posts[index];
-          final isExpanded = _isExpandedMap[index] ?? false;
-          return Padding(
-            padding: EdgeInsets.all(screenWidth * 0.025), // ปรับระยะห่างตามขนาดหน้าจอ
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                color: Color(0xFF2d292a),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.05,
-                      vertical: 10,
-                    ),
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Image.network(
-                        'https://i.pravatar.cc/150?u=${post['username']}',
-                        width: screenWidth * 0.1, // ปรับให้สัมพันธ์หน้าจอ
-                        height: screenWidth * 0.1,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    title: Text(
-                      post['username']!,
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.045,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    trailing: Icon(Icons.favorite_border, color: Colors.white),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          post['imageUrl']!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.04,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.face, color: Colors.white),
-                        SizedBox(width: 8),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            post['username']!,
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: screenWidth * 0.04,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.comment, color: Colors.white),
-                        SizedBox(width: 8),
-                        // ใช้ Flexible เพื่อให้ TextField ยืดตามหน้าจอ
-                        Flexible(
-                          flex: 5,
-                          child: Container(
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 68, 68, 68),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: TextField(
-                              style: TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: 'คอมเม้นท์...',
-                                hintStyle: TextStyle(color: Colors.white70),
-                                border: InputBorder.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: isExpanded
-                                    ? post['caption']
-                                    : (post['caption']!.length > 100
-                                        ? post['caption']!.substring(0, 100)
-                                        : post['caption']),
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: screenWidth * 0.035,
-                                  height: 1.4,
-                                  shadows: [
-                                    Shadow(
-                                      offset: Offset(0.5, 0.5),
-                                      blurRadius: 0.5,
-                                      color: Colors.black45,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if ((post['caption']?.length ?? 0) > 100)
-                                TextSpan(
-                                  text: isExpanded
-                                      ? ' ย่อข้อความ'
-                                      : ' ... อ่านเพิ่มเติม',
-                                  style: TextStyle(
-                                    color: Colors.yellow,
-                                    fontSize: screenWidth * 0.035,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                    shadows: [
-                                      Shadow(
-                                        offset: Offset(0.3, 0.3),
-                                        blurRadius: 0.5,
-                                        color: Colors.black,
-                                      ),
-                                    ],
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      setState(() {
-                                        _isExpandedMap[index] = !isExpanded;
-                                      });
-                                    },
-                                ),
-                            ],
-                          ),
-                          maxLines: isExpanded ? null : 2,
-                          overflow: isExpanded
-                              ? TextOverflow.visible
-                              : TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            ),
-          );
-        },
+      // --- ส่วน Body ที่แก้ไขใหม่โดยใช้ Nested StreamBuilder ---
+      body: _currentUserUid == null
+          ? const Center(child: Text("Please log in...", style: TextStyle(color: Colors.white)))
+          : RefreshIndicator(
+        color: Colors.black,
+        backgroundColor: Colors.yellow,
+        onRefresh: _fetchInitialData, // ดึงข้อมูลใหม่เมื่อผู้ใช้ลากจอลง
+        child: ListView.builder(
+          controller: _scrollController,
+          itemCount: _postDocs.length + (_hasMoreData ? 1 : 0), // +1 สำหรับ Loading Indicator
+          itemBuilder: (context, index) {
+            // ถ้าเป็น item สุดท้าย และยังมีข้อมูลเพิ่ม ให้แสดง Loading Indicator
+            if (index == _postDocs.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator(color: Colors.yellow,)),
+              );
+            }
+
+            final postDoc = _postDocs[index];
+            return PostCard(
+              key: ValueKey(postDoc.id),
+              postSnapshot: postDoc,
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFF3B716),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         onPressed: () {
-          // เพิ่มฟังก์ชันสร้างโพสต์ใหม่
+          Navigator.push(context, MaterialPageRoute(builder: (context) => CreatePostPage()));
+          // TODO: เพิ่มฟังก์ชันสำหรับสร้างโพสต์ใหม่
         },
         child: const Icon(Icons.add),
       ),
@@ -231,39 +188,39 @@ class _FeedPageState extends State<FeedPage> {
   }
 }
 
-// หน้าแชทจำลอง
-class ChatPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Chats',
-          style: TextStyle(
-            color: Colors.yellow,
-            fontWeight: FontWeight.bold,
-            fontSize: screenWidth * 0.05,
-          ),
-        ),
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Center(
-        child: Text(
-          'หน้านี้สำหรับแชท (ยังไม่เชื่อมระบบจริง)',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: screenWidth * 0.04,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
+// // หน้าแชทจำลอง
+// class ChatPage extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     final screenWidth = MediaQuery.of(context).size.width;
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text(
+//           'Chats',
+//           style: TextStyle(
+//             color: Colors.yellow,
+//             fontWeight: FontWeight.bold,
+//             fontSize: screenWidth * 0.05,
+//           ),
+//         ),
+//         backgroundColor: Colors.black,
+//         leading: IconButton(
+//           icon: Icon(Icons.arrow_back, color: Colors.white),
+//           onPressed: () {
+//             Navigator.pop(context);
+//           },
+//         ),
+//       ),
+//       body: Center(
+//         child: Text(
+//           'หน้านี้สำหรับแชท (ยังไม่เชื่อมระบบจริง)',
+//           style: TextStyle(
+//             color: Colors.white,
+//             fontSize: screenWidth * 0.04,
+//           ),
+//           textAlign: TextAlign.center,
+//         ),
+//       ),
+//     );
+//   }
+// }

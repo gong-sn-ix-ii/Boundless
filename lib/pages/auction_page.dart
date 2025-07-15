@@ -1,4 +1,5 @@
 // ไฟล์: auction_page.dart
+import 'package:boundless/SigninPage.dart';
 import 'package:flutter/material.dart';
 import '../Chat.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,6 +13,7 @@ class AuctionPage extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width; // ดึงขนาดหน้าจอ
 
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(
@@ -28,7 +30,7 @@ class AuctionPage extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => Chat()),
+                MaterialPageRoute(builder: (context) => SignInPage()),
               );
             },
           ),

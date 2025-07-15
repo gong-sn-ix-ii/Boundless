@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 class SenderBox extends StatefulWidget {
   final Map<String, dynamic> message;
-
-  const SenderBox({super.key, required this.message});
+  final String profileURL;
+  const SenderBox({super.key, required this.message, this.profileURL = ""});
 
   @override
   State<SenderBox> createState() => _SenderBoxState();
@@ -69,11 +69,27 @@ class _SenderBoxState extends State<SenderBox> {
           Padding(
             padding: EdgeInsets.only(left: 5),
             child: CircleAvatar(
-              backgroundImage: NetworkImage(
-                'https://imageio.forbes.com/specials-images/imageserve/5d35eacaf1176b0008974b54/0x0.jpg?format=jpg&crop=4560,2565,x790,y784,safe&height=900&width=1600&fit=bounds',
-              ),
               radius: 15,
-            ),
+              backgroundColor: Colors.grey.shade300, // เพิ่มสีพื้นหลังเผื่อไว้ตอนโหลด
+
+              // 1. ส่วนของรูปภาพ (backgroundImage)
+              //    - ถ้า URL มีค่าและไม่ว่างเปล่า ให้ใช้ NetworkImage
+              //    - ถ้า URL เป็น null หรือว่างเปล่า ให้ส่งค่า null เข้าไป
+              backgroundImage: (widget.profileURL != null && widget.profileURL!.isNotEmpty)
+                  ? NetworkImage(widget.profileURL!)
+                  : null,
+
+              // 2. ส่วนของ Widget สำรอง (child)
+              //    - child จะแสดงก็ต่อเมื่อ backgroundImage เป็น null หรือโหลดรูปไม่สำเร็จ
+              //    - ถ้า URL เป็น null หรือว่างเปล่า ให้แสดง Icon สำรอง
+              child: (widget.profileURL == null || widget.profileURL!.isEmpty)
+                  ? const Icon(
+                Icons.account_circle,
+                size: 30, // ขนาดของ Icon ควรจะเท่ากับ radius * 2
+                color: Colors.white,
+              )
+                  : null, // ถ้ามีรูปภาพ ก็ไม่ต้องแสดง child
+            )
           ),
 
           Padding(

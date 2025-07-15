@@ -1,5 +1,6 @@
 import 'package:boundless/Chat.dart';
-import 'package:boundless/components/PostBox.dart';
+import 'package:boundless/SigninPage.dart';
+import 'package:boundless/components/PostBox_old.dart';
 import 'package:flutter/material.dart';
 
 class PostPage extends StatelessWidget {
@@ -22,7 +23,7 @@ class PostPage extends StatelessWidget {
             onPressed: () {
               Navigator.of(
                 context,
-              ).push(MaterialPageRoute(builder: (context) => const Chat()));
+              ).push(MaterialPageRoute(builder: (context) => const SignInPage()));
             },
           ),
         ],

@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Boundless App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(primarySwatch: Colors.yellow),
 
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
@@ -36,9 +36,9 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          if (snapshot.hasData) {
-            return MainPage();
-          }
+           if (snapshot.hasData) {
+             return MainPage();
+           }
 
           return const SignInPage();
         },

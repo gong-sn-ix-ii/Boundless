@@ -6,6 +6,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 // Import หน้าที่คุณต้องการไปหลังจากสมัครสำเร็จ
 import 'package:boundless/Chat.dart'; // ตัวอย่าง: ไปที่หน้า Chat
+import 'package:boundless/SigninPage.dart'; // หน้าสำหรับเข้าสู่ระบบ
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -23,7 +24,8 @@ class _SignUpPageState extends State<SignUpPage> {
   final _displayNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController(); // <--- เพิ่ม Controller
+  final _confirmPasswordController =
+      TextEditingController(); // <--- เพิ่ม Controller
   final _phoneController = TextEditingController();
 
   // สร้าง Instance ของ Firebase เพื่อความสะดวก
@@ -52,10 +54,12 @@ class _SignUpPageState extends State<SignUpPage> {
 
     try {
       // ขั้นตอนที่ 1: สร้างผู้ใช้ใน Firebase Authentication
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(), // ใช้รหัสผ่านจาก controller ตัวแรก
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text
+                .trim(), // ใช้รหัสผ่านจาก controller ตัวแรก
+          );
 
       User? newUser = userCredential.user;
 
@@ -93,7 +97,10 @@ class _SignUpPageState extends State<SignUpPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -107,43 +114,51 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('BOUNDLESS', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: const Text(
+          'BOUNDLESS',
+          style: TextStyle(
+            color: Color(0xFFF3B716),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.black,
         elevation: 0.5,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 60.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              Image.asset(
-                'assets/logo_boundless.PNG',
-                height: 85,
-              ),
-              const SizedBox(height: 5),
+              Image.asset('assets/Logo_boundless_original.png', height: 100),
+              const SizedBox(height: 48),
 
               _buildTextField(
                 controller: _displayNameController,
                 labelText: 'ชื่อผู้ใช้',
-                validator: (value) => value!.isEmpty ? 'กรุณากรอกชื่อผู้ใช้' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'กรุณากรอกชื่อผู้ใช้' : null,
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _emailController,
                 labelText: 'อีเมล',
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => !(value?.contains('@') ?? false) ? 'กรุณากรอกอีเมลให้ถูกต้อง' : null,
+                validator: (value) => !(value?.contains('@') ?? false)
+                    ? 'กรุณากรอกอีเมลให้ถูกต้อง'
+                    : null,
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _passwordController,
                 labelText: 'รหัสผ่าน',
                 obscureText: true,
-                validator: (value) => (value?.length ?? 0) < 6 ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' : null,
+                validator: (value) => (value?.length ?? 0) < 6
+                    ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+                    : null,
               ),
               const SizedBox(height: 16),
               // --- เพิ่มช่องยืนยันรหัสผ่าน ---
@@ -166,44 +181,72 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: _phoneController,
                 labelText: 'เบอร์โทรศัพท์',
                 keyboardType: TextInputType.phone,
-                validator: (value) => value!.isEmpty ? 'กรุณากรอกเบอร์โทรศัพท์' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'กรุณากรอกเบอร์โทรศัพท์' : null,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 70),
 
               SizedBox(
-                width: double.infinity,
+                width:
+                    MediaQuery.of(context).size.width *
+                    0.5, // ปรับให้ยาวประมาณ 50% ของหน้าจอ
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFFF3B716),
+                    foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: _isLoading
-                      ? const SpinKitRing(color: Colors.white, lineWidth: 3, size: 24)
-                      : const Text('ยืนยัน', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ? const SpinKitRing(
+                          color: Colors.white,
+                          lineWidth: 3,
+                          size: 24,
+                        )
+                      : const Text(
+                          'ยืนยัน',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 2),
+
+              // ปุ่มสำหรับไปหน้าเข้าสู่ระบบ
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const SignInPage()),
+                  );
+                },
+                child: const Text(
+                  'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ',
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined), label: 'Service'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
-        currentIndex: 2,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        type: BottomNavigationBarType.fixed,
-      ),
+      // bottomNavigationBar: BottomNavigationBar(
+      //   items: const [
+      //     BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+      //     BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined), label: 'Service'),
+      //     BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+      //   ],
+      //   currentIndex: 2,
+      //   selectedItemColor: Colors.black,
+      //   unselectedItemColor: Colors.grey,
+      //   showSelectedLabels: false,
+      //   showUnselectedLabels: false,
+      //   type: BottomNavigationBarType.fixed,
+      // ),
     );
   }
 
@@ -217,7 +260,13 @@ class _SignUpPageState extends State<SignUpPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(labelText, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        Text(
+          labelText,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -227,12 +276,15 @@ class _SignUpPageState extends State<SignUpPage> {
           decoration: InputDecoration(
             hintText: 'กรอก$labelText',
             filled: true,
-            fillColor: Colors.grey[200],
+            fillColor: Colors.grey[500],
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
