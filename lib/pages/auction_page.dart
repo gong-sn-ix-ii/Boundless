@@ -24,17 +24,17 @@ class AuctionPage extends StatelessWidget {
             fontSize: screenWidth * 0.05, // ปรับตามหน้าจอ
           ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SignInPage()),
-              );
-            },
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
+        //     onPressed: () {
+        //       Navigator.push(
+        //         context,
+        //         MaterialPageRoute(builder: (context) => SignInPage()),
+        //       );
+        //     },
+        //   ),
+        // ],
       ),
       body: Padding(
         padding: EdgeInsets.all(screenWidth * 0.02), // ปรับ padding
