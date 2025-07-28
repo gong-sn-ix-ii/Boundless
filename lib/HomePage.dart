@@ -1,23 +1,25 @@
+// lib/main_page.dart
+
 import 'package:flutter/material.dart';
 import 'pages/feed_page.dart';
 import 'pages/auction_page.dart';
 import 'pages/profile_page.dart';
 
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
-
-class MainPage extends StatefulWidget {
   @override
-  _MainPageState createState() => _MainPageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
+  // รายการของหน้าต่างๆ ยังคงเหมือนเดิม
   final List<Widget> _pages = [
-    FeedPage(),
-    AuctionPage(),
+    const FeedPage(),
+    const AuctionPage(),
     ProfilePage(),
-    //Chat(), // Assuming you have a Chat page
   ];
 
   void _onItemTapped(int index) {
@@ -29,13 +31,19 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      // ✅ ใช้ IndexedStack เพื่อแสดงผลหน้าที่เลือกและเก็บหน้าอื่นไว้ใน state
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
         selectedItemColor: Colors.yellow,
         unselectedItemColor: Colors.white70,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        // เพิ่ม type: BottomNavigationBarType.fixed เพื่อให้พื้นหลังแสดงสีที่กำหนด
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.gavel), label: 'Auction'),
