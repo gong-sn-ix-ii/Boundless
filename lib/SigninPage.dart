@@ -1,4 +1,4 @@
-import 'package:boundless/main_page.dart';
+import 'package:boundless/HomePage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -50,7 +50,7 @@ class _SignInPageState extends State<SignInPage> {
       if (mounted) {
         Navigator.of(
           context,
-        ).pushReplacement(MaterialPageRoute(builder: (context) => MainPage()));
+        ).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
       }
     } on FirebaseAuthException catch (e) {
       String message = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';

@@ -1,4 +1,4 @@
-// lib/main_page.dart
+// lib/HomePage.dart
 
 import 'package:flutter/material.dart';
 import 'pages/feed_page.dart';
