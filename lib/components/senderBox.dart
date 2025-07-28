@@ -53,11 +53,11 @@ class _SenderBoxState extends State<SenderBox> {
             text: content,
             isSender: isSender,
             color: isSender
-                ? Colors.black
+                ? Color(0xFFF3B716) // เปลี่ยนเป็นสีที่ต้องการสำหรับผู้ส่ง
                 : Colors.blue,
             tail: true,
             textStyle: const TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 16,
             ),
           ),

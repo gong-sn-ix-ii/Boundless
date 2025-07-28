@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'edit_profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:boundless/main_page.dart'; // นำเข้า MainPage เพื่อใช้ในการนำทางกลับไปหน้า Login
+import 'package:boundless/HomePage.dart'; // นำเข้า MainPage เพื่อใช้ในการนำทางกลับไปหน้า Login
 import 'package:boundless/main.dart';
 
 class SettingsPage extends StatelessWidget {

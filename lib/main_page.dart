@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'pages/feed_page.dart';
 import 'pages/auction_page.dart';
 import 'pages/profile_page.dart';
+import 'dart:async';
 
 
 
@@ -12,6 +13,18 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // เริ่มต้น Agora หรือการตั้งค่าอื่น ๆ ที่จำเป็นที่นี่
+    initForAgora();
+  }
+  
+  Future<void> initForAgora() async {
+    // เรียกใช้ฟังก์ชันที่จำเป็นสำหรับ Agora ที่นี่
+    // เช่น การเชื่อมต่อกับ Agora SDK หรือการตั้งค่าอื่น ๆ
+  }
 
   final List<Widget> _pages = [
     FeedPage(),
@@ -32,7 +45,7 @@ class _MainPageState extends State<MainPage> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
-        selectedItemColor: Colors.yellow,
+        selectedItemColor: Color(0xFFF3B716),
         unselectedItemColor: Colors.white70,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

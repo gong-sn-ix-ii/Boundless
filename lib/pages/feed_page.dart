@@ -1,7 +1,6 @@
-import 'package:boundless/Services/Service.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
+// lib/pages/feed_page.dart
 
+import 'package:flutter/material.dart';
 import 'package:boundless/CreatePostPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,29 +15,26 @@ class FeedPage extends StatefulWidget {
   _FeedPageState createState() => _FeedPageState();
 }
 
-
 class _FeedPageState extends State<FeedPage> {
-  // ดึง UID ของผู้ใช้ปัจจุบันมาเก็บไว้
+  // --- State and controllers ---
   final String? _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
   final ScrollController _scrollController = ScrollController();
 
-  // --- State สำหรับจัดการ Pagination ---
+  // --- Pagination State ---
   bool _isLoading = false;
   bool _hasMoreData = true;
   List<DocumentSnapshot> _postDocs = [];
   DocumentSnapshot? _lastDocument;
   List<String> _hiddenPostIds = [];
-  final int _initialLimit = 2; // โหลดครั้งแรก 6 โพสต์
-  final int _nextLimit = 3;    // โหลดครั้งถัดไป 3 โพสต์
+  final int _initialLimit = 5;
+  final int _nextLimit = 3;
 
-@override
+  @override
   void initState() {
     super.initState();
     _fetchInitialData();
 
-    // เพิ่ม Listener ให้กับ ScrollController
     _scrollController.addListener(() {
-      // ตรวจสอบว่าเลื่อนถึงท้ายสุดของหน้าจอหรือไม่
       if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
           !_isLoading &&
           _hasMoreData) {
@@ -58,33 +54,32 @@ class _FeedPageState extends State<FeedPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. ดึงรายการโพสต์ที่ถูกซ่อนก่อน
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUserUid).get();
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>?;
         _hiddenPostIds = List<String>.from(userData?['hiddenPosts'] ?? []);
       }
 
-      // 2. ดึงโพสต์ชุดแรก
-      QuerySnapshot postSnapshot = await FirebaseFirestore.instance
+      Query postQuery = FirebaseFirestore.instance
           .collection('posts')
-          .orderBy('timestamp', descending: true)
-          .limit(_initialLimit)
-          .get();
+          .orderBy('timestamp', descending: true);
+
+      // Note: whereNotIn is limited to 10 items. For more, client-side filtering is needed.
+      if (_hiddenPostIds.isNotEmpty) {
+        postQuery = postQuery.where(FieldPath.documentId, whereNotIn: _hiddenPostIds);
+      }
+
+      QuerySnapshot postSnapshot = await postQuery.limit(_initialLimit).get();
 
       final fetchedDocs = postSnapshot.docs;
 
-      // กรองโพสต์ที่ซ่อนไว้ออก
-      final visibleDocs = fetchedDocs.where((post) => !_hiddenPostIds.contains(post.id)).toList();
-
       if (mounted) {
         setState(() {
-          _postDocs = visibleDocs;
+          _postDocs = fetchedDocs; // The query already filters hidden posts
           if (fetchedDocs.isNotEmpty) {
             _lastDocument = fetchedDocs.last;
           }
           _isLoading = false;
-          // ถ้าจำนวนที่ดึงมาได้น้อยกว่าที่ขอไป แสดงว่าไม่มีข้อมูลเพิ่มแล้ว
           _hasMoreData = fetchedDocs.length == _initialLimit;
         });
       }
@@ -99,19 +94,22 @@ class _FeedPageState extends State<FeedPage> {
     setState(() => _isLoading = true);
 
     try {
-      QuerySnapshot postSnapshot = await FirebaseFirestore.instance
+      Query postQuery = FirebaseFirestore.instance
           .collection('posts')
           .orderBy('timestamp', descending: true)
-          .startAfterDocument(_lastDocument!) // เริ่มดึงต่อจากเอกสารตัวสุดท้าย
-          .limit(_nextLimit)
-          .get();
+          .startAfterDocument(_lastDocument!);
+
+      if (_hiddenPostIds.isNotEmpty) {
+        postQuery = postQuery.where(FieldPath.documentId, whereNotIn: _hiddenPostIds);
+      }
+
+      QuerySnapshot postSnapshot = await postQuery.limit(_nextLimit).get();
 
       final fetchedDocs = postSnapshot.docs;
-      final visibleDocs = fetchedDocs.where((post) => !_hiddenPostIds.contains(post.id)).toList();
 
       if (mounted) {
         setState(() {
-          _postDocs.addAll(visibleDocs);
+          _postDocs.addAll(fetchedDocs);
           if (fetchedDocs.isNotEmpty) {
             _lastDocument = fetchedDocs.last;
           }
@@ -127,43 +125,61 @@ class _FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width; // ดึงความกว้างหน้าจอ
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(
           'Boundless',
-          style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold,fontSize: screenWidth * 0.05, ),
+          style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: screenWidth * 0.05),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
+            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MessagesPage()),
+                MaterialPageRoute(builder: (context) => const MessagesPage()),
               );
             },
           ),
         ],
       ),
-      // --- ส่วน Body ที่แก้ไขใหม่โดยใช้ Nested StreamBuilder ---
       body: _currentUserUid == null
           ? const Center(child: Text("Please log in...", style: TextStyle(color: Colors.white)))
           : RefreshIndicator(
         color: Colors.black,
         backgroundColor: Colors.yellow,
-        onRefresh: _fetchInitialData, // ดึงข้อมูลใหม่เมื่อผู้ใช้ลากจอลง
-        child: ListView.builder(
+        onRefresh: _fetchInitialData,
+        child: (_postDocs.isEmpty && !_isLoading)
+            ? Center( // ✅ UI พิเศษเมื่อไม่มีโพสต์
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.explore_off_outlined, color: Colors.grey.shade700, size: 80),
+              const SizedBox(height: 16),
+              Text(
+                "ยังไม่มีเรื่องราวใหม่",
+                style: TextStyle(fontSize: 20, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "สร้างโพสต์แรกของคุณ หรือรอการอัปเดตจากเพื่อนๆ",
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        )
+            : ListView.builder( // ✅ UI ปกติเมื่อมีโพสต์
           controller: _scrollController,
-          itemCount: _postDocs.length + (_hasMoreData ? 1 : 0), // +1 สำหรับ Loading Indicator
+          itemCount: _postDocs.length + (_hasMoreData ? 1 : 0),
           itemBuilder: (context, index) {
-            // ถ้าเป็น item สุดท้าย และยังมีข้อมูลเพิ่ม ให้แสดง Loading Indicator
             if (index == _postDocs.length) {
               return const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Center(child: CircularProgressIndicator(color: Colors.yellow,)),
+                child: Center(child: CircularProgressIndicator(color: Colors.yellow)),
               );
             }
 
@@ -171,6 +187,13 @@ class _FeedPageState extends State<FeedPage> {
             return PostCard(
               key: ValueKey(postDoc.id),
               postSnapshot: postDoc,
+              onDelete: () {
+                if (mounted) {
+                  setState(() {
+                    _postDocs.removeAt(index);
+                  });
+                }
+              },
             );
           },
         ),
@@ -178,49 +201,17 @@ class _FeedPageState extends State<FeedPage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFF3B716),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => CreatePostPage()));
-          // TODO: เพิ่มฟังก์ชันสำหรับสร้างโพสต์ใหม่
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreatePostPage()),
+          );
+          if (result == true) {
+            _fetchInitialData();
+          }
         },
         child: const Icon(Icons.add),
       ),
     );
   }
 }
-
-// // หน้าแชทจำลอง
-// class ChatPage extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     final screenWidth = MediaQuery.of(context).size.width;
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text(
-//           'Chats',
-//           style: TextStyle(
-//             color: Colors.yellow,
-//             fontWeight: FontWeight.bold,
-//             fontSize: screenWidth * 0.05,
-//           ),
-//         ),
-//         backgroundColor: Colors.black,
-//         leading: IconButton(
-//           icon: Icon(Icons.arrow_back, color: Colors.white),
-//           onPressed: () {
-//             Navigator.pop(context);
-//           },
-//         ),
-//       ),
-//       body: Center(
-//         child: Text(
-//           'หน้านี้สำหรับแชท (ยังไม่เชื่อมระบบจริง)',
-//           style: TextStyle(
-//             color: Colors.white,
-//             fontSize: screenWidth * 0.04,
-//           ),
-//           textAlign: TextAlign.center,
-//         ),
-//       ),
-//     );
-//   }
-// }
