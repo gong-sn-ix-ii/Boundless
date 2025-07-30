@@ -1,13 +1,17 @@
+// lib/pages/profile_page.dart
+
 import 'package:boundless/pages/user_post_feed_page.dart';
+import 'package:boundless/services/Service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+import '../Chat.dart';
+import 'FollowListPage.dart';
+import 'edit_profile_page.dart';
 import 'setting_page.dart';
 
 class ProfilePage extends StatefulWidget {
-  // Parameter to accept the userId of the profile to display
   final String? userId;
   const ProfilePage({super.key, this.userId});
 
@@ -17,33 +21,76 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final String? _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+  final FirestoreService _firestoreService = FirestoreService();
   late String _profileUserId;
 
   @override
   void initState() {
     super.initState();
-    // If no userId is passed, use the current user's id (to show your own profile)
-    _profileUserId = widget.userId ?? _currentUserUid!;
+    _profileUserId = widget.userId ?? _currentUserUid ?? '';
   }
 
-  // Function to handle Follow/Unfollow logic
-  Future<void> _handleFollowUnfollow(bool isCurrentlyFollowing) async {
-    final userRef = FirebaseFirestore.instance.collection('users').doc(_profileUserId);
-    final currentUserRef = FirebaseFirestore.instance.collection('users').doc(_currentUserUid);
+  @override
+  void didUpdateWidget(covariant ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.userId != oldWidget.userId) {
+      setState(() {
+        _profileUserId = widget.userId ?? _currentUserUid ?? '';
+      });
+    }
+  }
 
+  Future<void> _handleFollowUnfollow(bool isCurrentlyFollowing) async {
+    if (_currentUserUid == null) return;
+
+    final userRef =
+    FirebaseFirestore.instance.collection('users').doc(_profileUserId);
+    final currentUserRef =
+    FirebaseFirestore.instance.collection('users').doc(_currentUserUid);
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
     if (isCurrentlyFollowing) {
-      // --- Unfollow ---
-      batch.update(userRef, { 'followers': FieldValue.arrayRemove([_currentUserUid]) });
-      batch.update(currentUserRef, { 'following': FieldValue.arrayRemove([_profileUserId]) });
+      batch.update(userRef, {
+        'followers': FieldValue.arrayRemove([_currentUserUid])
+      });
+      batch.update(currentUserRef, {
+        'following': FieldValue.arrayRemove([_profileUserId])
+      });
     } else {
-      // --- Follow ---
-      batch.update(userRef, { 'followers': FieldValue.arrayUnion([_currentUserUid]) });
-      batch.update(currentUserRef, { 'following': FieldValue.arrayUnion([_profileUserId]) });
+      batch.update(userRef, {
+        'followers': FieldValue.arrayUnion([_currentUserUid])
+      });
+      batch.update(currentUserRef, {
+        'following': FieldValue.arrayUnion([_profileUserId])
+      });
     }
 
     await batch.commit();
+  }
+
+  Future<void> _navigateToChat() async {
+    if (_currentUserUid == null) return;
+
+    final chatRoomId =
+    _firestoreService.getChatRoomId(_currentUserUid!, _profileUserId);
+
+    await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).set({
+      'participants': [_currentUserUid, _profileUserId],
+      'activeFor': FieldValue.arrayUnion([_currentUserUid, _profileUserId]),
+      'lastMessage': {
+        'content': '',
+        'senderUID': _currentUserUid,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'system',
+      }
+    }, SetOptions(merge: true));
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Chat(chatRoomID: chatRoomId)),
+      );
+    }
   }
 
   @override
@@ -51,7 +98,9 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_profileUserId.isEmpty) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: Text("Please login or specify a user", style: TextStyle(color: Colors.white))),
+        body: Center(
+            child: Text("Please login or specify a user",
+                style: TextStyle(color: Colors.white))),
       );
     }
 
@@ -59,13 +108,24 @@ class _ProfilePageState extends State<ProfilePage> {
     final double screenWidth = MediaQuery.of(context).size.width;
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(_profileUserId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(_profileUserId)
+          .snapshots(),
       builder: (context, userSnapshot) {
         if (userSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.yellow)));
+          return const Scaffold(
+              backgroundColor: Colors.black,
+              body: Center(child: CircularProgressIndicator(color: Colors.yellow)));
         }
-        if (userSnapshot.hasError || !userSnapshot.hasData || !userSnapshot.data!.exists) {
-          return const Scaffold(backgroundColor: Colors.black, body: Center(child: Text("Could not find user data", style: TextStyle(color: Colors.white))));
+        if (userSnapshot.hasError ||
+            !userSnapshot.hasData ||
+            !userSnapshot.data!.exists) {
+          return const Scaffold(
+              backgroundColor: Colors.black,
+              body: Center(
+                  child: Text("Could not find user data",
+                      style: TextStyle(color: Colors.white))));
         }
 
         final userData = userSnapshot.data!.data() as Map<String, dynamic>;
@@ -75,7 +135,8 @@ class _ProfilePageState extends State<ProfilePage> {
         final String coverUrl = userData['coverPhotoUrl'] ?? '';
         final List followersRaw = userData['followers'] as List? ?? [];
         final int followersCount = followersRaw.length;
-        final int followingCount = (userData['following'] as List? ?? []).length;
+        final int followingCount =
+            (userData['following'] as List? ?? []).length;
         final bool isFollowing = followersRaw.contains(_currentUserUid);
 
         return Scaffold(
@@ -87,7 +148,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: 220,
                 width: double.infinity,
                 child: coverUrl.isNotEmpty
-                    ? CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover, placeholder: (c, u) => Container(color: Colors.grey.shade900))
+                    ? CachedNetworkImage(
+                    imageUrl: coverUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (c, u) => Container(color: Colors.grey.shade900))
                     : Container(color: Colors.grey.shade900),
               ),
               Positioned(
@@ -96,7 +160,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Container(
                   width: screenWidth * 2,
                   height: screenWidth * 2,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Colors.black),
                 ),
               ),
               StreamBuilder<QuerySnapshot>(
@@ -115,86 +180,168 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         Center(
                           child: Container(
-                            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 4)),
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black, width: 4)),
                             child: CircleAvatar(
                               radius: 60,
-                              backgroundImage: profileUrl.isNotEmpty ? CachedNetworkImageProvider(profileUrl) : null,
-                              child: profileUrl.isEmpty ? const Icon(Icons.person, size: 60) : null,
+                              backgroundImage: profileUrl.isNotEmpty
+                                  ? CachedNetworkImageProvider(profileUrl)
+                                  : null,
+                              child: profileUrl.isEmpty
+                                  ? const Icon(Icons.person, size: 60)
+                                  : null,
                             ),
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Text(displayName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+                        Text(displayName,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 22)),
                         const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildStatBox('Posts', postCount.toString()),
-                            _buildStatBox('Followers', followersCount.toString()),
-                            _buildStatBox('Following', followingCount.toString()),
+                            GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => FollowListPage(
+                                            userId: _profileUserId,
+                                            listType: FollowListType.followers,
+                                            title: "Followers",
+                                          )));
+                                },
+                                child: _buildStatBox(
+                                    'Followers', followersCount.toString())),
+                            GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => FollowListPage(
+                                            userId: _profileUserId,
+                                            listType: FollowListType.following,
+                                            title: "Following",
+                                          )));
+                                },
+                                child: _buildStatBox(
+                                    'Following', followingCount.toString())),
                           ],
                         ),
-
-                        // ✅✅✅ ย้ายปุ่มมาไว้ตรงนี้ ✅✅✅
+                        if (isMyProfile)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: _buildActionButton(
+                                text: "Edit Profile",
+                                onPressed: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                          const EditProfilePage()));
+                                },
+                                isPrimary: true,
+                              ),
+                            ),
+                          ),
                         if (!isMyProfile)
                           Padding(
-                            padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 4), // ปรับ padding ตามความสวยงาม
+                            padding: const EdgeInsets.only(
+                                left: 20, right: 20, top: 16, bottom: 4),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: _buildActionButton(
                                     text: isFollowing ? 'Unfollow' : 'Follow',
-                                    onPressed: () => _handleFollowUnfollow(isFollowing),
+                                    onPressed: () =>
+                                        _handleFollowUnfollow(isFollowing),
                                     isPrimary: !isFollowing,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Expanded(child: _buildActionButton(text: "Message", onPressed: () {
-                                  // TODO: Implement message functionality
-                                })),
+                                Expanded(
+                                    child: _buildActionButton(
+                                        text: "Message",
+                                        onPressed: _navigateToChat)),
                               ],
                             ),
                           ),
-
                         const SizedBox(height: 20),
                         if (bio.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Text(bio, style: const TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
+                            padding:
+                            const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(bio,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 14),
+                                textAlign: TextAlign.center),
                           ),
-
                         const SizedBox(height: 20),
                         const Divider(color: Colors.white24),
                         const SizedBox(height: 10),
-
-                        postSnapshot.connectionState == ConnectionState.waiting
-                            ? const CircularProgressIndicator(color: Colors.yellow)
+                        postSnapshot.connectionState ==
+                            ConnectionState.waiting
+                            ? const CircularProgressIndicator(
+                            color: Colors.yellow)
                             : GridView.builder(
                           shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                          physics:
+                          const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 2.0),
                           itemCount: postDocs.length,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 2, mainAxisSpacing: 2),
+                          gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 2,
+                              mainAxisSpacing: 2),
                           itemBuilder: (context, index) {
                             final postDoc = postDocs[index];
-                            final postData = postDoc.data() as Map<String, dynamic>;
-                            final List<String> imageUrls = List<String>.from(postData['imageUrls'] ?? []);
-                            final String firstImage = imageUrls.isNotEmpty ? imageUrls.first : '';
-                            if (firstImage.isEmpty) return Container(color: Colors.grey.shade800);
+                            final postData = postDoc.data()
+                            as Map<String, dynamic>;
+                            final List<String> imageUrls =
+                            List<String>.from(
+                                postData['imageUrls'] ?? []);
+                            final String firstImage = imageUrls
+                                .isNotEmpty
+                                ? imageUrls.first
+                                : '';
+                            if (firstImage.isEmpty) {
+                              return Container(
+                                  color: Colors.grey.shade800);
+                            }
+
                             return GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => UserPostFeedPage(
-                                      userId: _profileUserId,
-                                      userName: displayName,
-                                      initialPostId: postDoc.id,
-                                    ),
+                                    builder: (context) =>
+                                        UserPostFeedPage(
+                                          userId: _profileUserId,
+                                          userName: displayName,
+                                          initialPostId: postDoc.id,
+                                        ),
                                   ),
                                 );
                               },
-                              child: CachedNetworkImage(imageUrl: firstImage, fit: BoxFit.cover, placeholder: (c, u) => Container(color: Colors.grey.shade800)),
+                              child: Hero(
+                                tag: '${postDoc.id}-0',
+                                child: CachedNetworkImage(
+                                  imageUrl: firstImage,
+                                  fit: BoxFit.cover,
+                                  placeholder: (c, u) => Container(
+                                      color: Colors.grey.shade800),
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -210,7 +357,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: IconButton(
                     icon: const Icon(Icons.menu, color: Colors.white),
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => SettingsPage()));
                     },
                   ),
                 ),
@@ -232,7 +380,10 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           child: Text(
             count,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18),
           ),
         ),
         const SizedBox(height: 4),
@@ -241,10 +392,15 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildActionButton({required String text, required VoidCallback onPressed, bool isPrimary = false}) {
-    final backgroundColor = isPrimary ? Colors.yellow.shade700 : Colors.black;
+  Widget _buildActionButton(
+      {required String text,
+        required VoidCallback onPressed,
+        bool isPrimary = false}) {
+    final backgroundColor =
+    isPrimary ? Colors.yellow.shade700 : Colors.black;
     final foregroundColor = isPrimary ? Colors.black : Colors.white;
-    final borderColor = isPrimary ? Colors.transparent : Colors.yellow.shade700;
+    final borderColor =
+    isPrimary ? Colors.transparent : Colors.yellow.shade700;
 
     return SizedBox(
       height: 40,

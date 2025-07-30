@@ -1,6 +1,9 @@
 // lib/HomePage.dart
 
 import 'package:flutter/material.dart';
+import 'CreateAuctionPage.dart';
+import 'CreatePostPage.dart';
+import 'MessagesPage.dart';
 import 'pages/feed_page.dart';
 import 'pages/auction_page.dart';
 import 'pages/profile_page.dart';
@@ -14,27 +17,95 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  String? _viewingUserId;
+  final GlobalKey<FeedPageState> _feedPageKey = GlobalKey<FeedPageState>();
 
-  // รายการของหน้าต่างๆ ยังคงเหมือนเดิม
-  final List<Widget> _pages = [
-    const FeedPage(),
-    const AuctionPage(),
-    ProfilePage(),
-  ];
-
-  void _onItemTapped(int index) {
+  void _navigateToUserProfile(String userId) {
     setState(() {
+      _viewingUserId = userId;
+      _selectedIndex = 2;
+    });
+  }
+
+  // ✅ แก้ไขฟังก์ชันนี้
+  void _onItemTapped(int index) {
+    // หากกดที่ Tab Home ซ้ำ จะทำการรีเฟรชข้อมูล
+    if (_selectedIndex == index && index == 0) {
+      _feedPageKey.currentState?.fetchInitialData();
+    }
+
+    setState(() {
+      // ถ้าปัจจุบันอยู่ที่หน้า Profile (index 2) และกำลังจะสลับไปหน้าอื่น (index != 2)
+      if (_selectedIndex == 2 && index != 2) {
+        // ให้รีเซ็ต ID โปรไฟล์ที่ดูกลับเป็นของตัวเอง
+        _viewingUserId = null;
+      }
       _selectedIndex = index;
     });
   }
 
+  AppBar? _buildAppBar(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    switch (_selectedIndex) {
+      case 0: // FeedPage
+        return AppBar(
+          backgroundColor: Colors.black,
+          title: Text(
+            'Boundless',
+            style: TextStyle(
+                color: Colors.yellow,
+                fontWeight: FontWeight.bold,
+                fontSize: screenWidth * 0.05),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MessagesPage()));
+              },
+            ),
+          ],
+        );
+      case 1: // AuctionPage
+        return AppBar(
+          backgroundColor: Colors.black,
+          title: Text(
+            'Boundless',
+            style: TextStyle(
+                color: Colors.yellow,
+                fontWeight: FontWeight.bold,
+                fontSize: screenWidth * 0.05),
+          ),
+        );
+      case 2: // ProfilePage
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      FeedPage(
+          key: _feedPageKey,
+          onProfileTapped: _navigateToUserProfile
+      ),
+      AuctionPage(),
+      ProfilePage(
+        key: ValueKey(_viewingUserId),
+        userId: _viewingUserId,
+      ),
+    ];
+
     return Scaffold(
-      // ✅ ใช้ IndexedStack เพื่อแสดงผลหน้าที่เลือกและเก็บหน้าอื่นไว้ใน state
+      backgroundColor: Colors.black,
+      appBar: _buildAppBar(context),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
@@ -42,7 +113,6 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.white70,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        // เพิ่ม type: BottomNavigationBarType.fixed เพื่อให้พื้นหลังแสดงสีที่กำหนด
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
@@ -50,6 +120,33 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+        backgroundColor: const Color(0xFFF3B716),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30)),
+        onPressed: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const CreatePostPage()));
+        },
+        child: const Icon(Icons.add),
+      )
+          : _selectedIndex == 1
+          ? FloatingActionButton(
+        backgroundColor: const Color(0xFFF3B716),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30)),
+        onPressed: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const CreateAuctionPage()));
+        },
+        child: const Icon(Icons.add),
+      )
+          : null,
     );
   }
 }

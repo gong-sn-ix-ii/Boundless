@@ -1,6 +1,7 @@
 // lib/components/PostCard.dart
 
-import 'package:boundless/Services/Service.dart';
+import 'package:boundless/pages/profile_page.dart';
+import 'package:boundless/services/Service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,7 +21,8 @@ class KeepAlivePage extends StatefulWidget {
   State<KeepAlivePage> createState() => _KeepAlivePageState();
 }
 
-class _KeepAlivePageState extends State<KeepAlivePage> with AutomaticKeepAliveClientMixin {
+class _KeepAlivePageState extends State<KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -34,11 +36,13 @@ class _KeepAlivePageState extends State<KeepAlivePage> with AutomaticKeepAliveCl
 class PostCard extends StatefulWidget {
   final DocumentSnapshot postSnapshot;
   final VoidCallback onDelete;
+  final Function(String userId) onProfileTapped;
 
   const PostCard({
     super.key,
     required this.postSnapshot,
     required this.onDelete,
+    required this.onProfileTapped,
   });
 
   @override
@@ -48,7 +52,7 @@ class PostCard extends StatefulWidget {
 class _PostCardState extends State<PostCard> {
   // --- State variables ---
   final String? _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
-  final FirestoreService _firestoreService = FirestoreService(); // ✨ Add service instance
+  final FirestoreService _firestoreService = FirestoreService();
   Map<String, dynamic>? _postData;
   late bool _isLiked;
   late int _likeCount;
@@ -62,9 +66,7 @@ class _PostCardState extends State<PostCard> {
   late final FocusNode _commentFocusNode;
   final Map<String, Map<String, String>> _commenterInfoCache = {};
 
-  // ✨ State for holding the user data future
   Future<UserModel>? _ownerFuture;
-
 
   @override
   void initState() {
@@ -101,17 +103,16 @@ class _PostCardState extends State<PostCard> {
       _postData = widget.postSnapshot.data() as Map<String, dynamic>;
       List<dynamic> likedByRaw = _postData!['likedBy'] ?? [];
       _likeCount = likedByRaw.length;
-      _isLiked = _currentUserUid != null ? likedByRaw.contains(_currentUserUid) : false;
+      _isLiked =
+      _currentUserUid != null ? likedByRaw.contains(_currentUserUid) : false;
       List<dynamic> imageUrlsRaw = _postData!['imageUrls'] ?? [];
       _imageUrls = imageUrlsRaw.map((e) => e.toString()).toList();
       _commentCount = (_postData!['commentCount'] as num? ?? 0).toInt();
 
-      // ✨ Fetch owner data using ownerUid
       final ownerUid = _postData!['ownerUid'] as String?;
       if (ownerUid != null) {
         _ownerFuture = _firestoreService.getUserProfile(ownerUid);
       }
-
     } else {
       _postData = {};
       _likeCount = 0;
@@ -167,7 +168,8 @@ class _PostCardState extends State<PostCard> {
     if (_commenterInfoCache.containsKey(uid)) {
       return _commenterInfoCache[uid]!;
     }
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final userDoc =
+    await FirebaseFirestore.instance.collection('users').doc(uid).get();
     if (userDoc.exists) {
       final data = userDoc.data() as Map<String, dynamic>;
       final info = {
@@ -185,10 +187,15 @@ class _PostCardState extends State<PostCard> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('ยืนยันการลบ'),
-        content: const Text('คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้? การกระทำนี้ไม่สามารถย้อนกลับได้'),
+        content: const Text(
+            'คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้? การกระทำนี้ไม่สามารถย้อนกลับได้'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('ลบ', style: TextStyle(color: Colors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('ลบ', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -196,7 +203,8 @@ class _PostCardState extends State<PostCard> {
     if (confirmed != true) return;
 
     try {
-      final List<String> imageUrls = List<String>.from(_postData?['imageUrls'] ?? []);
+      final List<String> imageUrls =
+      List<String>.from(_postData?['imageUrls'] ?? []);
 
       if (imageUrls.isNotEmpty) {
         List<Future<void>> deleteImageTasks = [];
@@ -207,7 +215,8 @@ class _PostCardState extends State<PostCard> {
         await Future.wait(deleteImageTasks);
       }
 
-      final commentsSnapshot = await widget.postSnapshot.reference.collection('comments').get();
+      final commentsSnapshot =
+      await widget.postSnapshot.reference.collection('comments').get();
       WriteBatch batch = FirebaseFirestore.instance.batch();
       for (final doc in commentsSnapshot.docs) {
         batch.delete(doc.reference);
@@ -220,15 +229,17 @@ class _PostCardState extends State<PostCard> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("โพสต์ถูกลบแล้ว"), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text("โพสต์ถูกลบแล้ว"), backgroundColor: Colors.green),
         );
       }
-
     } catch (e) {
       print("Error deleting post from client: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการลบ: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -242,7 +253,8 @@ class _PostCardState extends State<PostCard> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: DraggableScrollableSheet(
             initialChildSize: 0.7,
             minChildSize: 0.4,
@@ -251,7 +263,8 @@ class _PostCardState extends State<PostCard> {
               return Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFF2d292a),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
                   children: [
@@ -260,57 +273,109 @@ class _PostCardState extends State<PostCard> {
                       child: Container(
                         width: 40,
                         height: 5,
-                        decoration: BoxDecoration(color: Colors.grey[700], borderRadius: BorderRadius.circular(10)),
+                        decoration: BoxDecoration(
+                            color: Colors.grey[700],
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
-                    const Text("Comments", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text("Comments",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
                     const Divider(color: Colors.grey, height: 24),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: widget.postSnapshot.reference.collection('comments').orderBy('timestamp').snapshots(),
+                        stream: widget.postSnapshot.reference
+                            .collection('comments')
+                            .orderBy('timestamp')
+                            .snapshots(),
                         builder: (context, commentSnapshot) {
-                          if (commentSnapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
+                          if (commentSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
                           }
-                          if (!commentSnapshot.hasData || commentSnapshot.data!.docs.isEmpty) {
-                            return const Center(child: Text("ยังไม่มีการคอมเม้นท์", style: TextStyle(color: Colors.grey)));
+                          if (!commentSnapshot.hasData ||
+                              commentSnapshot.data!.docs.isEmpty) {
+                            return const Center(
+                                child: Text("ยังไม่มีการคอมเม้นท์",
+                                    style: TextStyle(color: Colors.grey)));
                           }
                           return ListView.builder(
                             controller: controller,
                             itemCount: commentSnapshot.data!.docs.length,
                             itemBuilder: (context, index) {
-                              final commentData = commentSnapshot.data!.docs[index].data() as Map<String, dynamic>;
-                              final commenterUid = commentData['commenterUID'] as String? ?? '';
-                              final commentText = commentData['commentText'] as String? ?? '[No Text]';
-                              final commentTimestamp = commentData['timestamp'] as Timestamp?;
-                              final commentTimeAgo = formatTimestamp(commentTimestamp);
-                              if (commenterUid.isEmpty) return const SizedBox.shrink();
+                              final commentData =
+                              commentSnapshot.data!.docs[index].data()
+                              as Map<String, dynamic>;
+                              final commenterUid =
+                                  commentData['commenterUID'] as String? ?? '';
+                              final commentText =
+                                  commentData['commentText'] as String? ??
+                                      '[No Text]';
+                              final commentTimestamp =
+                              commentData['timestamp'] as Timestamp?;
+                              final commentTimeAgo =
+                              formatTimestamp(commentTimestamp);
+                              if (commenterUid.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
                               return FutureBuilder<Map<String, String>>(
                                 future: _getCommenterInfo(commenterUid),
                                 builder: (context, userInfoSnapshot) {
-                                  if (userInfoSnapshot.connectionState == ConnectionState.waiting) {
+                                  if (userInfoSnapshot.connectionState ==
+                                      ConnectionState.waiting) {
                                     return ListTile(
                                       leading: const CircleAvatar(),
-                                      title: Container(width: 100, height: 12, color: Colors.grey.shade700),
-                                      subtitle: Container(width: 150, height: 10, color: Colors.grey.shade800),
+                                      title: Container(
+                                          width: 100,
+                                          height: 12,
+                                          color: Colors.grey.shade700),
+                                      subtitle: Container(
+                                          width: 150,
+                                          height: 10,
+                                          color: Colors.grey.shade800),
                                     );
                                   }
-                                  final commenterInfo = userInfoSnapshot.data ?? {'displayName': 'Unknown', 'profileURL': ''};
+                                  final commenterInfo = userInfoSnapshot.data ??
+                                      {
+                                        'displayName': 'Unknown',
+                                        'profileURL': ''
+                                      };
                                   return ListTile(
                                     leading: CircleAvatar(
-                                      backgroundImage: commenterInfo['profileURL']!.isNotEmpty ? NetworkImage(commenterInfo['profileURL']!) : null,
-                                      child: commenterInfo['profileURL']!.isEmpty ? const Icon(Icons.person) : null,
+                                      backgroundImage: commenterInfo[
+                                      'profileURL']!
+                                          .isNotEmpty
+                                          ? NetworkImage(
+                                          commenterInfo['profileURL']!)
+                                          : null,
+                                      child: commenterInfo['profileURL']!
+                                          .isEmpty
+                                          ? const Icon(Icons.person)
+                                          : null,
                                     ),
                                     title: Row(
                                       children: [
                                         Flexible(
-                                          child: Text(commenterInfo['displayName']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                                          child: Text(
+                                              commenterInfo['displayName']!,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold),
+                                              overflow: TextOverflow.ellipsis),
                                         ),
                                         const SizedBox(width: 8),
-                                        Text(commentTimeAgo, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                        Text(commentTimeAgo,
+                                            style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 12)),
                                       ],
                                     ),
-                                    subtitle: Text(commentText, style: const TextStyle(color: Colors.white70)),
+                                    subtitle: Text(commentText,
+                                        style: const TextStyle(
+                                            color: Colors.white70)),
                                   );
                                 },
                               );
@@ -330,18 +395,23 @@ class _PostCardState extends State<PostCard> {
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 hintText: 'Add a comment...',
-                                hintStyle: TextStyle(color: Colors.grey.shade500),
+                                hintStyle:
+                                TextStyle(color: Colors.grey.shade500),
                                 filled: true,
                                 fillColor: Colors.black.withOpacity(0.2),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
                               ),
                               onSubmitted: (text) => _postComment(),
                             ),
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: Icon(Icons.send, color: Colors.yellow.shade700),
+                            icon: Icon(Icons.send,
+                                color: Colors.yellow.shade700),
                             onPressed: _postComment,
                           ),
                         ],
@@ -368,7 +438,8 @@ class _PostCardState extends State<PostCard> {
           children: <Widget>[
             ListTile(
               leading: const Icon(Icons.visibility_off, color: Colors.white),
-              title: const Text('Hide Post', style: TextStyle(color: Colors.white)),
+              title: const Text('Hide Post',
+                  style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 _hidePost();
@@ -377,7 +448,8 @@ class _PostCardState extends State<PostCard> {
             if (isOwner)
               ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text('Delete Post', style: TextStyle(color: Colors.red)),
+                title: const Text('Delete Post',
+                    style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
                   _deletePost();
@@ -393,7 +465,10 @@ class _PostCardState extends State<PostCard> {
     if (_currentUserUid == null) return;
     final postId = widget.postSnapshot.id;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(_currentUserUid).update({
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_currentUserUid)
+          .update({
         'hiddenPosts': FieldValue.arrayUnion([postId]),
       });
       if (mounted) {
@@ -403,7 +478,10 @@ class _PostCardState extends State<PostCard> {
           action: SnackBarAction(
             label: 'UNDO',
             onPressed: () {
-              FirebaseFirestore.instance.collection('users').doc(_currentUserUid).update({
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(_currentUserUid)
+                  .update({
                 'hiddenPosts': FieldValue.arrayRemove([postId]),
               });
             },
@@ -412,7 +490,8 @@ class _PostCardState extends State<PostCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to hide post. Please try again.")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Failed to hide post. Please try again.")));
       }
     }
   }
@@ -435,30 +514,37 @@ class _PostCardState extends State<PostCard> {
     final timeAgo = formatTimestamp(postTimestamp);
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: screenWidth * 0.025),
+      padding:
+      EdgeInsets.symmetric(vertical: 8.0, horizontal: screenWidth * 0.025),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: const Color(0xFF2d292a),
         ),
-        // ✨ Use FutureBuilder to display owner info
         child: FutureBuilder<UserModel>(
           future: _ownerFuture,
           builder: (context, ownerSnapshot) {
-
-            // --- UI States for FutureBuilder ---
             Widget leadingWidget;
             String ownerDisplayName = 'Loading...';
 
-            if (ownerSnapshot.connectionState == ConnectionState.done && ownerSnapshot.hasData) {
+            void navigateToProfile() {
+              if (ownerSnapshot.hasData) {
+                widget.onProfileTapped(ownerSnapshot.data!.uid);
+              }
+            }
+
+            if (ownerSnapshot.connectionState == ConnectionState.done &&
+                ownerSnapshot.hasData) {
               final owner = ownerSnapshot.data!;
               ownerDisplayName = owner.displayName;
               leadingWidget = InkWell(
-                onTap: () {}, // TODO: Navigate to owner's profile page
+                onTap: navigateToProfile,
+                borderRadius: BorderRadius.circular(8.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: owner.profileURL.isNotEmpty
-                      ? Image.network(owner.profileURL, width: 40, height: 40, fit: BoxFit.cover)
+                      ? Image.network(owner.profileURL,
+                      width: 40, height: 40, fit: BoxFit.cover)
                       : Container(
                     width: 40,
                     height: 40,
@@ -469,44 +555,55 @@ class _PostCardState extends State<PostCard> {
               );
             } else if (ownerSnapshot.hasError) {
               ownerDisplayName = 'Error';
-              leadingWidget = const Icon(Icons.error_outline, color: Colors.red);
+              leadingWidget =
+              const Icon(Icons.error_outline, color: Colors.red);
             } else {
-              // Loading state
               leadingWidget = Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
                     color: Colors.grey.shade800,
-                    borderRadius: BorderRadius.circular(8.0)
-                ),
+                    borderRadius: BorderRadius.circular(8.0)),
               );
             }
 
-            // --- Main Column ---
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ✅ ส่วนหัวของโพสต์
                 ListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: 8.0),
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04, vertical: 8.0),
                   leading: leadingWidget,
-                  title: Row(
-                    children: [
-                      Text(ownerDisplayName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(width: 8),
-                      Text(timeAgo, style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-                    ],
+                  title: GestureDetector(
+                    onTap: navigateToProfile,
+                    child: Row(
+                      children: [
+                        Text(ownerDisplayName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
+                        const SizedBox(width: 8),
+                        Text(timeAgo,
+                            style: TextStyle(
+                                color: Colors.grey.shade400, fontSize: 12)),
+                      ],
+                    ),
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.more_horiz, color: Colors.white),
                     onPressed: _showPostOptions,
                   ),
                 ),
+
+                // ✅ ส่วนรูปภาพของโพสต์
                 if (_imageUrls.isNotEmpty)
                   Stack(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0, vertical: 4.0),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: AspectRatio(
@@ -514,7 +611,9 @@ class _PostCardState extends State<PostCard> {
                             child: PageView(
                               controller: _pageController,
                               onPageChanged: (index) {
-                                setState(() { _currentPageIndex = index; });
+                                setState(() {
+                                  _currentPageIndex = index;
+                                });
                               },
                               children: _imageUrls.map((imageUrl) {
                                 final index = _imageUrls.indexOf(imageUrl);
@@ -539,16 +638,21 @@ class _PostCardState extends State<PostCard> {
                                       child: CachedNetworkImage(
                                         imageUrl: imageUrl,
                                         fit: BoxFit.cover,
-                                        placeholder: (context, url) => Container(
-                                          color: Colors.grey[850],
-                                          child: const Center(
-                                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.0),
-                                          ),
-                                        ),
-                                        errorWidget: (context, url, error) => Container(
-                                          color: Colors.grey[850],
-                                          child: const Icon(Icons.broken_image, color: Colors.grey, size: 50),
-                                        ),
+                                        placeholder: (context, url) =>
+                                            Container(
+                                              color: Colors.grey[850],
+                                              child: const Center(
+                                                child: CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                    strokeWidth: 2.0),
+                                              ),
+                                            ),
+                                        errorWidget: (context, url, error) =>
+                                            Container(
+                                              color: Colors.grey[850],
+                                              child: const Icon(Icons.broken_image,
+                                                  color: Colors.grey, size: 50),
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -563,9 +667,15 @@ class _PostCardState extends State<PostCard> {
                           top: 10,
                           right: 25,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(20)),
-                            child: Text('${_currentPageIndex + 1}/${_imageUrls.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20)),
+                            child: Text(
+                                '${_currentPageIndex + 1}/${_imageUrls.length}',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12)),
                           ),
                         ),
                     ],
@@ -573,18 +683,28 @@ class _PostCardState extends State<PostCard> {
                 else
                   AspectRatio(
                     aspectRatio: 1,
-                    child: Container(color: Colors.grey[800], child: const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 50))),
+                    child: Container(
+                        color: Colors.grey[800],
+                        child: const Center(
+                            child: Icon(Icons.image_not_supported,
+                                color: Colors.grey, size: 50))),
                   ),
+
+                // ✅ ส่วนปุ่ม Actions (Like, Comment)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.02, vertical: 8),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border, color: _isLiked ? Colors.red : Colors.white),
+                        icon: Icon(
+                            _isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: _isLiked ? Colors.red : Colors.white),
                         onPressed: _toggleLike,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                        icon: const Icon(Icons.chat_bubble_outline,
+                            color: Colors.white),
                         onPressed: _showCommentsSheet,
                       ),
                       Expanded(
@@ -596,13 +716,18 @@ class _PostCardState extends State<PostCard> {
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
                               hintText: 'Add a comment...',
-                              hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                              hintStyle: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 14),
                               filled: true,
                               fillColor: Colors.grey.shade800,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                              contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide.none),
                               suffixIcon: IconButton(
-                                icon: Icon(Icons.send, color: Colors.yellow.shade700, size: 20),
+                                icon: Icon(Icons.send,
+                                    color: Colors.yellow.shade700, size: 20),
                                 onPressed: _postComment,
                               ),
                             ),
@@ -612,38 +737,62 @@ class _PostCardState extends State<PostCard> {
                     ],
                   ),
                 ),
+
+                // ✅ ส่วนแสดง Like และ Caption
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                  child: Text('$_likeCount likes', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  child: Text('$_likeCount likes',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 4),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                   child: Text.rich(
                     TextSpan(
                       children: [
-                        TextSpan(text: "$ownerDisplayName ", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        TextSpan(text: _isExpanded ? caption : truncateText(caption, 60), style: const TextStyle(color: Colors.white70)),
+                        TextSpan(
+                            text: "$ownerDisplayName ",
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
+                        TextSpan(
+                            text: _isExpanded
+                                ? caption
+                                : truncateText(caption, 60),
+                            style: const TextStyle(color: Colors.white70)),
                         if (caption.length > 100)
                           TextSpan(
-                            text: _isExpanded ? ' \nย่อข้อความ' : ' \nอ่านเพิ่มเติม',
-                            style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
+                            text:
+                            _isExpanded ? ' \nย่อข้อความ' : ' \nอ่านเพิ่มเติม',
+                            style: const TextStyle(
+                                color: Colors.yellow,
+                                fontWeight: FontWeight.bold),
                             recognizer: _readMoreRecognizer,
                           ),
                       ],
                     ),
                   ),
                 ),
+
+                // ✅ ส่วนแสดง "View all comments"
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.04, vertical: 8),
                   child: InkWell(
                     onTap: _showCommentsSheet,
                     child: StreamBuilder<QuerySnapshot>(
-                      stream: widget.postSnapshot.reference.collection('comments').snapshots(),
+                      stream: widget.postSnapshot.reference
+                          .collection('comments')
+                          .snapshots(),
                       builder: (context, snapshot) {
-                        final count = snapshot.data?.docs.length ?? _commentCount;
+                        final count =
+                            snapshot.data?.docs.length ?? _commentCount;
                         if (count == 0) return const SizedBox.shrink();
-                        return Text('View all $count comments', style: const TextStyle(color: Colors.grey));
+                        return Text('View all $count comments',
+                            style: const TextStyle(color: Colors.grey));
                       },
                     ),
                   ),
@@ -660,4 +809,3 @@ class _PostCardState extends State<PostCard> {
     );
   }
 }
-

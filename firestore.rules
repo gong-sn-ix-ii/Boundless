@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- 1. กฎสำหรับคอลเลกชัน 'users' (ฉบับแก้ไข) ---
+    match /users/{userId} {
+      // ผู้ใช้ที่ล็อกอินแล้วเท่านั้น ที่สามารถอ่านข้อมูลโปรไฟล์ของคนอื่นได้
+      allow read: if request.auth != null;
+
+      // เจ้าของโปรไฟล์เท่านั้น ที่สามารถสร้าง document ของตัวเองได้
+      allow create: if request.auth.uid == userId;
+
+      // การอัปเดตจะได้รับอนุญาต ถ้า...
+      allow update: if 
+        // 1. คุณเป็นเจ้าของโปรไฟล์ (สำหรับแก้ bio, displayName, รวมถึง 'following' list ของตัวเอง)
+        request.auth.uid == userId ||
+        
+        // 2. คุณ "ไม่ใช่" เจ้าของ แต่ field "เดียว" ที่คุณพยายามจะแก้คือ 'followers'
+        // (สำหรับให้คนอื่นมากด Follow/Unfollow เราได้)
+        (request.auth.uid != null && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers']));
+
+      // --- กฎสำหรับคอลเลกชันย่อย 'notifications' ---
+      match /notifications/{notificationId} {
+        allow read, update, create: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // --- 2. กฎสำหรับคอลเลกชัน 'posts' ---
+    match /posts/{postId} {
+      // ผู้ใช้ที่ล็อกอินแล้วเท่านั้น ที่สามารถสร้างและอ่านโพสต์ได้
+      allow create, read: if request.auth != null;
+      // เจ้าของโพสต์เท่านั้น ที่สามารถอัปเดตหรือลบโพสต์ของตัวเองได้
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+
+      // --- กฎสำหรับคอลเลกชันย่อย 'comments' ---
+      match /comments/{commentId} {
+        // ผู้ใช้ที่ล็อกอินแล้วเท่านั้น ที่สามารถสร้างและอ่านคอมเมนต์ได้
+        allow create, read: if request.auth != null;
+        // เจ้าของคอมเมนต์ "หรือ" เจ้าของโพสต์ สามารถลบคอมเมนต์ได้
+        allow delete: if request.auth != null && (request.auth.uid == resource.data.commenterUID || request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.ownerUid);
+      }
+    }
+
+    // --- 3. กฎสำหรับคอลเลกชัน 'chats' ---
+    match /chats/{chatId} {
+      // อนุญาตให้ "ค้นหา" แชทได้ ถ้าล็อกอินแล้ว (สำหรับหน้า MessagesPage)
+      allow list: if request.auth != null;
+      
+      // อนุญาตให้อ่านข้อมูลห้องแชทโดยตรง, สร้าง, หรืออัปเดตได้ ก็ต่อเมื่อเป็นหนึ่งในสมาชิกของแชทนั้น
+      allow get, create, update: if request.auth != null && request.auth.uid in resource.data.participants;
+      
+      // --- กฎสำหรับคอลเลกชันย่อย 'messages' ---
+      match /messages/{messageId} {
+          // อนุญาตให้อ่านและสร้างข้อความได้ ก็ต่อเมื่อเป็นหนึ่งในสมาชิกของห้องแชทนั้น
+          allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
+    
+    // --- 4. กฎสำหรับคอลเลกชัน 'auctions' ---
+    match /auctions/{auctionId} {
+      // ผู้ใช้ที่ล็อกอินแล้ว สามารถสร้างและอ่านข้อมูลการประมูลได้
+      allow create, read: if request.auth != null;
+      
+      // การประมูลต้องมีการอัปเดตข้อมูล (เช่น currentBid) จากผู้ใช้คนอื่นที่ไม่ใช่เจ้าของ
+      // ดังนั้น จึงอนุญาตให้ผู้ที่ล็อกอินทุกคนสามารถอัปเดตได้
+      allow update: if request.auth != null;
+
+      // เจ้าของการประมูลเท่านั้น ที่สามารถลบได้
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+
+      // --- กฎสำหรับคอลเลกชันย่อย 'bids' ---
+      match /bids/{bidId} {
+        // ผู้ใช้ที่ล็อกอินแล้ว สามารถสร้าง (บิด) และอ่านประวัติการบิดได้
+        allow create, read: if request.auth != null;
+      }
+    }
+  }
+}
