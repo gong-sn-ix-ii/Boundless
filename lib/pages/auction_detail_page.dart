@@ -1,10 +1,12 @@
+import 'dart:async';
+import 'package:boundless/mixins/notification_listener_mixin.dart';
 import 'package:boundless/pages/edit_auction_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'dart:async';
+
 
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
@@ -15,7 +17,8 @@ class AuctionDetailPage extends StatefulWidget {
 }
 
 // ✅ Mixin added here to listen for notifications on this page
-class _AuctionDetailPageState extends State<AuctionDetailPage> {
+class _AuctionDetailPageState extends State<AuctionDetailPage>
+    with NotificationListenerMixin<AuctionDetailPage> {
   late int selectedImageIndex;
   final _bidController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -80,10 +83,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         }
         final now = DateTime.now();
         if (now.isBefore(endTime)) {
-          setState(() { _timeLeft = endTime.difference(now); });
+          setState(() {
+            _timeLeft = endTime.difference(now);
+          });
         } else {
           timer.cancel();
-          setState(() { _timeLeft = Duration.zero; });
+          setState(() {
+            _timeLeft = Duration.zero;
+          });
         }
       });
     }
@@ -103,12 +110,15 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
   Future<void> _placeBid(int newBidAmount) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาล็อกอินเพื่อเข้าร่วมประมูล')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กรุณาล็อกอินเพื่อเข้าร่วมประมูล')));
       return;
     }
 
     final batch = FirebaseFirestore.instance.batch();
-    final auctionRef = FirebaseFirestore.instance.collection('auctions').doc(widget.auctionId);
+    final auctionRef =
+    FirebaseFirestore.instance.collection('auctions').doc(widget.auctionId);
 
     batch.update(auctionRef, {
       'currentBid': newBidAmount,
@@ -125,11 +135,16 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
     try {
       await batch.commit();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('คุณได้บิดราคาเป็น $newBidAmount บาท'), backgroundColor: Colors.green));
+       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('คุณได้บิดราคาเป็น $newBidAmount บาท'),
+          backgroundColor: Colors.green));
       FocusScope.of(context).unfocus();
     } catch (e) {
       print(e);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red));
+       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -138,11 +153,18 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: const Text('ยืนยันการบิดราคา', style: TextStyle(color: Colors.white)),
-        content: Text('คุณแน่ใจหรือไม่ว่าต้องการบิดราคาที่ $bidAmount บาท?', style: const TextStyle(color: Colors.white70)),
+        title: const Text('ยืนยันการบิดราคา',
+            style: TextStyle(color: Colors.white)),
+        content: Text('คุณแน่ใจหรือไม่ว่าต้องการบิดราคาที่ $bidAmount บาท?',
+            style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('ยืนยัน', style: TextStyle(color: Colors.yellow.shade700))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('ยืนยัน',
+                  style: TextStyle(color: Colors.yellow.shade700))),
         ],
       ),
     );
@@ -194,7 +216,11 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text("รายละเอียดการประมูล", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: titleSize)),
+         title: Text("รายละเอียดการประมูล",
+            style: TextStyle(
+                color: Colors.yellow,
+                fontWeight: FontWeight.bold,
+                fontSize: titleSize)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -204,7 +230,11 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.redAccent),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => EditAuctionPage(auctionId: widget.auctionId)));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            EditAuctionPage(auctionId: widget.auctionId)));
               },
             ),
         ],
@@ -217,12 +247,17 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             Hero(
               tag: imageTag,
               child: CachedNetworkImage(
-                imageUrl: imageUrls.isNotEmpty ? imageUrls[selectedImageIndex] : '',
+                imageUrl:
+                imageUrls.isNotEmpty ? imageUrls[selectedImageIndex] : '',
                 width: double.infinity,
                 height: 300,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(height: 300, color: Colors.grey.shade900),
-                errorWidget: (context, url, error) => Container(height: 300, color: Colors.grey.shade900, child: const Icon(Icons.image_not_supported)),
+                placeholder: (context, url) =>
+                    Container(height: 300, color: Colors.grey.shade900),
+                errorWidget: (context, url, error) => Container(
+                    height: 300,
+                    color: Colors.grey.shade900,
+                    child: const Icon(Icons.image_not_supported)),
               ),
             ),
             if (imageUrls.length > 1) ...[
@@ -235,11 +270,19 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                   itemCount: imageUrls.length,
                   itemBuilder: (context, i) {
                     return GestureDetector(
-                      onTap: () { setState(() { selectedImageIndex = i; }); },
+                      onTap: () {
+                        setState(() {
+                          selectedImageIndex = i;
+                        });
+                      },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
-                          border: Border.all(color: i == selectedImageIndex ? Colors.yellow : Colors.transparent, width: 2),
+                          border: Border.all(
+                              color: i == selectedImageIndex
+                                  ? Colors.yellow
+                                  : Colors.transparent,
+                              width: 2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: ClipRRect(
@@ -263,24 +306,41 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ชื่อผลงาน: $title', style: TextStyle(fontSize: titleSize, color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text('ชื่อผลงาน: $title',
+                      style: TextStyle(
+                          fontSize: titleSize,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 3),
-                  Text('ศิลปิน: $ownerName', style: TextStyle(fontSize: fontSize, color: Colors.white70)),
+                  Text('ศิลปิน: $ownerName',
+                      style: TextStyle(fontSize: fontSize, color: Colors.white70)),
                   const SizedBox(height: 3),
-                  Text('เวลาประมูลที่เหลือ: ${_formatDuration(_timeLeft)}', style: TextStyle(fontSize: fontSize, color: Colors.blueAccent)),
+                  Text('เวลาประมูลที่เหลือ: ${_formatDuration(_timeLeft)}',
+                      style:
+                      TextStyle(fontSize: fontSize, color: Colors.blueAccent)),
                   const SizedBox(height: 3),
-                  Text('จำนวนการบิด: $bidCount ครั้ง', style: TextStyle(fontSize: fontSize, color: Colors.white70)),
+                  Text('จำนวนการบิด: $bidCount ครั้ง',
+                      style: TextStyle(fontSize: fontSize, color: Colors.white70)),
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.center,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 8),
-                      decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 60, vertical: 8),
+                      decoration: BoxDecoration(
+                          color: Colors.white12,
+                          borderRadius: BorderRadius.circular(10)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('ราคาปัจจุบัน: ', style: TextStyle(color: Colors.white70, fontSize: fontSize)),
-                          Text('$currentBid บาท', style: TextStyle(color: Colors.yellow, fontSize: fontSize + 2, fontWeight: FontWeight.bold)),
+                          Text('ราคาปัจจุบัน: ',
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: fontSize)),
+                          Text('$currentBid บาท',
+                              style: TextStyle(
+                                  color: Colors.yellow,
+                                  fontSize: fontSize + 2,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -307,18 +367,25 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildIncrementDecrementButton(icon: Icons.remove, onPressed: () => _adjustBid(-bidIncrement)),
+                        _buildIncrementDecrementButton(
+                            icon: Icons.remove,
+                            onPressed: () => _adjustBid(-bidIncrement)),
                         Expanded(
                           child: TextFormField(
                             controller: _bidController,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold),
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.zero,
                               filled: true,
                               fillColor: Colors.grey.shade900,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) return '';
@@ -329,7 +396,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                             },
                           ),
                         ),
-                        _buildIncrementDecrementButton(icon: Icons.add, onPressed: () => _adjustBid(bidIncrement)),
+                         _buildIncrementDecrementButton(
+                            icon: Icons.add,
+                            onPressed: () => _adjustBid(bidIncrement)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -339,19 +408,25 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.yellow[700],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             final int amount = int.parse(_bidController.text);
                             _showBidConfirmationDialog(amount);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('ราคาที่กรอกไม่ถูกต้อง ต้องมากกว่า ${currentBid + bidIncrement} บาท'), backgroundColor: Colors.orange)
-                            );
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(
+                                    'ราคาที่กรอกไม่ถูกต้อง ต้องมากกว่า ${currentBid + bidIncrement} บาท'),
+                                backgroundColor: Colors.orange));
                           }
                         },
-                        child: Text('บิดด้วยราคานี้', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: fontSize)),
+                        child: Text('บิดด้วยราคานี้',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: fontSize)),
                       ),
                     ),
                   ],
@@ -360,28 +435,46 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 32, 16, 8),
-              child: Text("ประวัติการบิด", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text("ประวัติการบิด",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
             ),
             Container(
               height: 200,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('auctions').doc(widget.auctionId).collection('bids').orderBy('timestamp', descending: true).snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('auctions')
+                    .doc(widget.auctionId)
+                    .collection('bids')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, snapshot) {
-                  if(!snapshot.hasData) return const Center(child: Text("ยังไม่มีผู้ประมูล", style: TextStyle(color: Colors.white70)));
+                  if (!snapshot.hasData) {
+                    return const Center(
+                        child: Text("ยังไม่มีผู้ประมูล",
+                            style: TextStyle(color: Colors.white70)));
+                  }
                   return ListView.builder(
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
-                      final bidData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                      final bidData = snapshot.data!.docs[index].data()
+                      as Map<String, dynamic>;
                       final int bidAmount = bidData['bidAmount'];
                       final String bidderUid = bidData['bidderUid'];
-                      final Timestamp timestamp = bidData['timestamp'] ?? Timestamp.now();
+                      final Timestamp timestamp =
+                          bidData['timestamp'] ?? Timestamp.now();
 
                       return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection('users').doc(bidderUid).get(),
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(bidderUid)
+                            .get(),
                         builder: (context, userSnapshot) {
                           String bidderName = "Loading...";
-                          if(userSnapshot.hasData) {
+                           if (userSnapshot.hasData && userSnapshot.data!.exists) {
                             bidderName = userSnapshot.data!['displayName'] ?? "Unknown";
                           }
                           return ListTile(
@@ -393,9 +486,16 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                                   ? const Icon(Icons.person)
                                   : null,
                             ),
-                            title: Text("$bidderName ได้บิดราคา", style: const TextStyle(color: Colors.white)),
-                            subtitle: Text(DateFormat('dd MMM yyyy, HH:mm').format(timestamp.toDate()), style: const TextStyle(color: Colors.grey)),
-                            trailing: Text("$bidAmount บาท", style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)),
+                            title: Text("$bidderName ได้บิดราคา",
+                                style: const TextStyle(color: Colors.white)),
+                            subtitle: Text(
+                                DateFormat('dd MMM yyyy, HH:mm')
+                                    .format(timestamp.toDate()),
+                                style: const TextStyle(color: Colors.grey)),
+                            trailing: Text("$bidAmount บาท",
+                                style: const TextStyle(
+                                    color: Colors.yellow,
+                                    fontWeight: FontWeight.bold)),
                           );
                         },
                       );
@@ -410,10 +510,12 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     );
   }
 
-  Widget _buildIncrementDecrementButton({required IconData icon, required VoidCallback onPressed}) {
+  Widget _buildIncrementDecrementButton(
+      {required IconData icon, required VoidCallback onPressed}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(color: Colors.yellow[700], shape: BoxShape.circle),
+      decoration:
+      BoxDecoration(color: Colors.yellow[700], shape: BoxShape.circle),
       child: IconButton(
         icon: Icon(icon, color: Colors.black),
         onPressed: onPressed,

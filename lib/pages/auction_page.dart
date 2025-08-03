@@ -7,6 +7,7 @@ import '../CreateAuctionPage.dart';
 import '../Services/notification_service.dart';
 import '../models/user_model.dart';
 import '../services/Service.dart';
+import '../mixins/notification_listener_mixin.dart';
 import 'auction_detail_page.dart';
 
 class AuctionPage extends StatefulWidget {
@@ -16,7 +17,7 @@ class AuctionPage extends StatefulWidget {
   State<AuctionPage> createState() => _AuctionPageState();
 }
 
-class _AuctionPageState extends State<AuctionPage>   {
+class _AuctionPageState extends State<AuctionPage> with NotificationListenerMixin<AuctionPage>    {
 
   Future<void> _handleRefresh() async {
     setState(() {});
@@ -213,11 +214,8 @@ class _AuctionCardState extends State<AuctionCard> {
         });
       }
       else {
-        // --- ✨ 4. ส่วนสำคัญ: เมื่อประมูลจบ ให้สร้าง Notification ---
-        if (!_notificationSent) {
-          _notificationService.createAuctionEndNotification(widget.auctionDoc.id);
-          _notificationSent = true; // ตั้งค่าว่าส่งแล้ว ป้องกันการส่งซ้ำ
-        }
+        // เมื่อการประมูลจบ ก็แค่เปลี่ยนสถานะใน UI
+        // Cloud Function จะเป็นตัวจัดการสร้าง Notification ให้เอง
 
         setState(() {
           _isAuctionActive = false;
@@ -267,6 +265,7 @@ class _AuctionCardState extends State<AuctionCard> {
               );
             } : null,
             child: Card(
+              color: const Color(0xFF2d292a),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -304,7 +303,7 @@ class _AuctionCardState extends State<AuctionCard> {
                                 children: [
                                   Text(
                                     title,
-                                    style: TextStyle(fontSize: screenWidth * 0.035, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: Colors.white, fontSize: screenWidth * 0.035, fontWeight: FontWeight.bold),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -332,7 +331,7 @@ class _AuctionCardState extends State<AuctionCard> {
                                       Expanded(
                                         child: Text(
                                           _owner!.displayName,
-                                          style: TextStyle(fontSize: screenWidth * 0.03, color: Colors.grey.shade600),
+                                          style: TextStyle(color: Colors.grey.shade400, fontSize: screenWidth * 0.03),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
@@ -346,12 +345,12 @@ class _AuctionCardState extends State<AuctionCard> {
                                   const SizedBox(height: 4),
                                   Text(
                                     "$currentBid บาท",
-                                    style: TextStyle(fontSize: screenWidth * 0.035, color: Colors.red, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: screenWidth * 0.035, color: Colors.yellow, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     "จำนวนผู้ประมูล $bidCount ครั้ง",
-                                    style: TextStyle(fontSize: screenWidth * 0.032),
+                                    style: TextStyle(color: Colors.white70, fontSize: screenWidth * 0.032),
                                   ),
                                 ],
                               ),
@@ -365,14 +364,14 @@ class _AuctionCardState extends State<AuctionCard> {
                                 Navigator.push(context, MaterialPageRoute(builder: (_) => AuctionDetailPage(auctionId: widget.auctionDoc.id)));
                               } : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _isAuctionActive ? Colors.yellow.shade700 : const Color.fromARGB(255, 200, 200, 200),
+                                backgroundColor: _isAuctionActive ? Colors.yellow.shade700 : Colors.grey.shade800,
                                 foregroundColor: Colors.black,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                               ),
                               child: Text(
                                 "เข้าร่วมประมูล",
-                                style: TextStyle(fontSize: screenWidth * 0.035),
+                                style: TextStyle(fontSize: screenWidth * 0.035, color: _isAuctionActive ? Colors.black : Colors.grey.shade500),
                               ),
                             ),
                           ),

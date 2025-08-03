@@ -1,13 +1,15 @@
 // lib/pages/user_post_feed_page.dart
 
 import 'package:boundless/components/PostCard.dart';
+import 'package:boundless/pages/profile_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 
 class UserPostFeedPage extends StatefulWidget {
   final String userId;
   final String userName;
-  final String initialPostId; // 🔽 1. เปลี่ยนเป็น initialPostId
+  final String initialPostId;
 
   const UserPostFeedPage({
     super.key,
@@ -20,7 +22,7 @@ class UserPostFeedPage extends StatefulWidget {
   State<UserPostFeedPage> createState() => _UserPostFeedPageState();
 }
 
-// 🔽 2. นำ State Management จาก FeedPage มาปรับใช้
+
 class _UserPostFeedPageState extends State<UserPostFeedPage> {
   final ScrollController _scrollController = ScrollController();
 
@@ -28,7 +30,7 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
   bool _hasMoreData = true;
   List<DocumentSnapshot> _postDocs = [];
   DocumentSnapshot? _lastDocument;
-  final int _limit = 5; // จำนวนโพสต์ที่จะโหลดในแต่ละครั้ง
+  final int _limit = 5;
 
   @override
   void initState() {
@@ -36,7 +38,8 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
     _fetchInitialData();
 
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200 &&
           !_isLoading &&
           _hasMoreData) {
         _fetchMorePosts();
@@ -50,41 +53,45 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
     super.dispose();
   }
 
-  // 🔽 3. สร้างฟังก์ชันโหลดข้อมูลชุดแรกที่ซับซ้อนขึ้น
+  // แก้ไขฟังก์ชันดึงข้อมูลให้ถูกต้องตามข้อจำกัดของ Firestore
   Future<void> _fetchInitialData() async {
     setState(() => _isLoading = true);
 
     try {
-      // --- Step 1: ดึงโพสต์ที่ผู้ใช้กดมาโดยเฉพาะ ---
-      final initialPostDoc = await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(widget.initialPostId)
-          .get();
-
-      List<DocumentSnapshot> fetchedDocs = [];
-      if (initialPostDoc.exists) {
-        fetchedDocs.add(initialPostDoc);
-      }
-
-      // --- Step 2: ดึงโพสต์ที่เหลือของผู้ใช้คนนั้น โดยไม่เอาโพสต์แรกซ้ำ ---
-      Query restOfPostsQuery = FirebaseFirestore.instance
+      // ดึงโพสต์ทั้งหมดของผู้ใช้มาเลย
+      final querySnapshot = await FirebaseFirestore.instance
           .collection('posts')
           .where('ownerUid', isEqualTo: widget.userId)
-          .where(FieldPath.documentId, isNotEqualTo: widget.initialPostId) // ไม่เอาโพสต์แรกซ้ำ
           .orderBy('timestamp', descending: true)
-          .limit(_limit);
+          .limit(_limit)
+          .get();
 
-      final restOfPostsSnapshot = await restOfPostsQuery.get();
-      fetchedDocs.addAll(restOfPostsSnapshot.docs);
+      List<DocumentSnapshot> fetchedDocs = querySnapshot.docs;
+
+      // หาโพสต์ที่ผู้ใช้กดเข้ามา
+      final initialPostIndex = fetchedDocs.indexWhere((doc) => doc.id == widget.initialPostId);
+
+      // ถ้าเจอ ให้ย้ายไปไว้บนสุดของ List
+      if (initialPostIndex != -1) {
+        final initialPostDoc = fetchedDocs.removeAt(initialPostIndex);
+        fetchedDocs.insert(0, initialPostDoc);
+      } else {
+        // ถ้าไม่เจอ (อาจจะอยู่นอก limit แรก) ให้ดึงมาต่างหากแล้วแทรกเข้าไป
+        final initialPostDoc = await FirebaseFirestore.instance
+            .collection('posts').doc(widget.initialPostId).get();
+        if(initialPostDoc.exists) {
+          fetchedDocs.insert(0, initialPostDoc);
+        }
+      }
 
       if (mounted) {
         setState(() {
           _postDocs = fetchedDocs;
-          if (restOfPostsSnapshot.docs.isNotEmpty) {
-            _lastDocument = restOfPostsSnapshot.docs.last;
-          }
-          _isLoading = false;
-          _hasMoreData = restOfPostsSnapshot.docs.length == _limit;
+          if (fetchedDocs.isNotEmpty) {
+            _lastDocument = fetchedDocs.last;
+            }
+           _isLoading = false;
+           _hasMoreData = querySnapshot.docs.length == _limit;
         });
       }
 
@@ -123,8 +130,18 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
     } catch (e) {
       print("Error fetching more user posts: $e");
     } finally {
-      if(mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // เพิ่มฟังก์ชันสำหรับนำทางไปหน้าโปรไฟล์ (เมื่อกดจาก PostCard ในหน้านี้)
+  void _navigateToUserProfile(String userId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(userId: userId),
+      ),
+    );
   }
 
   @override
@@ -142,13 +159,14 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      // 🔽 5. ใช้ UI แบบเดียวกับ FeedPage
+      
       body: RefreshIndicator(
         color: Colors.black,
         backgroundColor: Colors.yellow,
         onRefresh: _fetchInitialData,
         child: (_postDocs.isEmpty && !_isLoading)
-            ? const Center(child: Text("ผู้ใช้คนนี้ยังไม่มีโพสต์", style: TextStyle(color: Colors.white70)))
+            ? const Center(
+            child: Text("ผู้ใช้คนนี้ยังไม่มีโพสต์", style: TextStyle(color: Colors.white70)))
             : ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           controller: _scrollController,
@@ -157,7 +175,8 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
             if (index == _postDocs.length) {
               return const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Center(child: CircularProgressIndicator(color: Colors.yellow)),
+                child: Center(
+                    child: CircularProgressIndicator(color: Colors.yellow)),
               );
             }
 
@@ -165,6 +184,8 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
             return PostCard(
               key: ValueKey(postDoc.id),
               postSnapshot: postDoc,
+              // ส่งฟังก์ชันที่สร้างขึ้นใหม่ให้กับ PostCard
+              onProfileTapped: _navigateToUserProfile,
               onDelete: () {
                 if (mounted) {
                   setState(() {

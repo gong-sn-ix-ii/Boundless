@@ -1,5 +1,6 @@
 // lib/components/PostCard.dart
 
+import 'package:boundless/pages/profile_page.dart';
 import 'package:boundless/Services/Service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/user_model.dart';
 import '../photo_gallery_page.dart';
@@ -35,11 +37,13 @@ class _KeepAlivePageState extends State<KeepAlivePage>
 class PostCard extends StatefulWidget {
   final DocumentSnapshot postSnapshot;
   final VoidCallback onDelete;
+  final Function(String userId) onProfileTapped;
 
   const PostCard({
     super.key,
     required this.postSnapshot,
     required this.onDelete,
+    required this.onProfileTapped,
   });
 
   @override
@@ -51,6 +55,7 @@ class _PostCardState extends State<PostCard> {
   final String? _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
   final FirestoreService _firestoreService =
       FirestoreService(); // ✨ Add service instance
+
   Map<String, dynamic>? _postData;
   late bool _isLiked;
   late int _likeCount;
@@ -358,9 +363,9 @@ class _PostCardState extends State<PostCard> {
                               final commentTimeAgo = formatTimestamp(
                                 commentTimestamp,
                               );
-                              if (commenterUid.isEmpty)
+                              if (commenterUid.isEmpty) {
                                 return const SizedBox.shrink();
-
+                              }
                               return FutureBuilder<Map<String, String>>(
                                 future: _getCommenterInfo(commenterUid),
                                 builder: (context, userInfoSnapshot) {
@@ -615,12 +620,19 @@ class _PostCardState extends State<PostCard> {
             Widget leadingWidget;
             String ownerDisplayName = 'Loading...';
 
+            void navigateToProfile() {
+              if (ownerSnapshot.hasData) {
+                widget.onProfileTapped(ownerSnapshot.data!.uid);
+              }
+            }
+
             if (ownerSnapshot.connectionState == ConnectionState.done &&
                 ownerSnapshot.hasData) {
               final owner = ownerSnapshot.data!;
               ownerDisplayName = owner.displayName;
               leadingWidget = InkWell(
-                onTap: () {}, // TODO: Navigate to owner's profile page
+                onTap: navigateToProfile,
+                borderRadius: BorderRadius.circular(8.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: owner.profileURL.isNotEmpty
@@ -661,30 +673,34 @@ class _PostCardState extends State<PostCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ✅ ส่วนหัวของโพสต์
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: screenWidth * 0.04,
                     vertical: 8.0,
                   ),
                   leading: leadingWidget,
-                  title: Row(
-                    children: [
-                      Text(
-                        ownerDisplayName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  title: GestureDetector(
+                    onTap: navigateToProfile,
+                    child: Row(
+                      children: [
+                        Text(
+                          ownerDisplayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        timeAgo,
-                        style: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 12,
+                        const SizedBox(width: 8),
+                        Text(
+                          timeAgo,
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.more_horiz, color: Colors.white),
@@ -692,6 +708,7 @@ class _PostCardState extends State<PostCard> {
                   ),
                 ),
 
+                // ✅ ส่วนรูปภาพของโพสต์
                 if (_imageUrls.isNotEmpty)
                   Stack(
                     children: [
@@ -802,6 +819,8 @@ class _PostCardState extends State<PostCard> {
                       ),
                     ),
                   ),
+
+                // ✅ ส่วนปุ่ม Actions (Like, Comment)
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: screenWidth * 0.02,
@@ -810,9 +829,11 @@ class _PostCardState extends State<PostCard> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(
-                          _isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: _isLiked ? Colors.red : Colors.white,
+                        icon: FaIcon(
+                          _isLiked
+                              ? FontAwesomeIcons.solidFaceSmileBeam
+                              : FontAwesomeIcons.faceSmileBeam,
+                          color: _isLiked ? Color(0xFFF3B716) : Colors.white,
                         ),
                         onPressed: _toggleLike,
                       ),
@@ -860,6 +881,7 @@ class _PostCardState extends State<PostCard> {
                     ],
                   ),
                 ),
+                // ✅ ส่วนแสดง Like และ Caption
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                   child: Text(
@@ -904,6 +926,8 @@ class _PostCardState extends State<PostCard> {
                     ),
                   ),
                 ),
+
+                // ✅ ส่วนแสดง "View all comments"
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: screenWidth * 0.04,
