@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "993854232725",
+    "firebase_url": "https://boundless-1304c-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "boundless-1304c",
     "storage_bucket": "boundless-1304c.firebasestorage.app"
   },
@@ -10,6 +11,25 @@
         "mobilesdk_app_id": "1:993854232725:android:3bf67ad096961de117239c",
         "android_client_info": {
           "package_name": "com.example.boundless"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhxHJKTvHPPZjmbV_915stx2SS3B2P8Ic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993854232725:android:5b097d1d6fe6db0017239c",
+        "android_client_info": {
+          "package_name": "com.gong_kan.boundless"
         }
       },
       "oauth_client": [],
