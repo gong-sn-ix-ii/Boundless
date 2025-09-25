@@ -1,9 +1,10 @@
 // lib/pages/user_post_feed_page.dart
 
 import 'package:boundless/components/PostCard.dart';
-import 'package:boundless/pages/profile_page.dart'; // ✅ 1. เพิ่ม Import สำหรับ ProfilePage
+import 'package:boundless/pages/profile_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 
 class UserPostFeedPage extends StatefulWidget {
   final String userId;
@@ -20,6 +21,7 @@ class UserPostFeedPage extends StatefulWidget {
   @override
   State<UserPostFeedPage> createState() => _UserPostFeedPageState();
 }
+
 
 class _UserPostFeedPageState extends State<UserPostFeedPage> {
   final ScrollController _scrollController = ScrollController();
@@ -51,9 +53,10 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
     super.dispose();
   }
 
-  // ✅ 2. แก้ไขฟังก์ชันดึงข้อมูลให้ถูกต้องตามข้อจำกัดของ Firestore
+  // แก้ไขฟังก์ชันดึงข้อมูลให้ถูกต้องตามข้อจำกัดของ Firestore
   Future<void> _fetchInitialData() async {
     setState(() => _isLoading = true);
+
     try {
       // ดึงโพสต์ทั้งหมดของผู้ใช้มาเลย
       final querySnapshot = await FirebaseFirestore.instance
@@ -86,17 +89,19 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
           _postDocs = fetchedDocs;
           if (fetchedDocs.isNotEmpty) {
             _lastDocument = fetchedDocs.last;
-          }
-          _isLoading = false;
-          _hasMoreData = querySnapshot.docs.length == _limit;
+            }
+           _isLoading = false;
+           _hasMoreData = querySnapshot.docs.length == _limit;
         });
       }
+
     } catch (e) {
       print("Error fetching initial user posts: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // 🔽 4. สร้างฟังก์ชันสำหรับโหลดข้อมูลเพิ่ม (Infinite Scroll)
   Future<void> _fetchMorePosts() async {
     if (_isLoading || !_hasMoreData) return;
     setState(() => _isLoading = true);
@@ -129,7 +134,7 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
     }
   }
 
-  // ✅ 3. เพิ่มฟังก์ชันสำหรับนำทางไปหน้าโปรไฟล์ (เมื่อกดจาก PostCard ในหน้านี้)
+  // เพิ่มฟังก์ชันสำหรับนำทางไปหน้าโปรไฟล์ (เมื่อกดจาก PostCard ในหน้านี้)
   void _navigateToUserProfile(String userId) {
     Navigator.push(
       context,
@@ -154,6 +159,7 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
+      
       body: RefreshIndicator(
         color: Colors.black,
         backgroundColor: Colors.yellow,
@@ -178,7 +184,7 @@ class _UserPostFeedPageState extends State<UserPostFeedPage> {
             return PostCard(
               key: ValueKey(postDoc.id),
               postSnapshot: postDoc,
-              // ✅ 4. ส่งฟังก์ชันที่สร้างขึ้นใหม่ให้กับ PostCard
+              // ส่งฟังก์ชันที่สร้างขึ้นใหม่ให้กับ PostCard
               onProfileTapped: _navigateToUserProfile,
               onDelete: () {
                 if (mounted) {

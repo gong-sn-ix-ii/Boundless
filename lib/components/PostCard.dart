@@ -1,13 +1,14 @@
 // lib/components/PostCard.dart
 
 import 'package:boundless/pages/profile_page.dart';
-import 'package:boundless/services/Service.dart';
+import 'package:boundless/Services/Service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/user_model.dart';
 import '../photo_gallery_page.dart';
@@ -52,27 +53,38 @@ class PostCard extends StatefulWidget {
 class _PostCardState extends State<PostCard> {
   // --- State variables ---
   final String? _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
-  final FirestoreService _firestoreService = FirestoreService();
+  final FirestoreService _firestoreService =
+      FirestoreService(); // ✨ Add service instance
+
   Map<String, dynamic>? _postData;
   late bool _isLiked;
   late int _likeCount;
   late int _commentCount;
   bool _isExpanded = false;
   final TextEditingController _commentController = TextEditingController();
+
   final PageController _pageController = PageController();
   int _currentPageIndex = 0;
   List<String> _imageUrls = [];
+
   late final TapGestureRecognizer _readMoreRecognizer;
+
+  // --- 1. ประกาศ FocusNode ---
   late final FocusNode _commentFocusNode;
+
   final Map<String, Map<String, String>> _commenterInfoCache = {};
 
+  // ✨ State for holding the user data future
   Future<UserModel>? _ownerFuture;
 
   @override
   void initState() {
     super.initState();
     _initializeState();
+
+    // --- 2. กำหนดค่า FocusNode ---
     _commentFocusNode = FocusNode();
+
     _readMoreRecognizer = TapGestureRecognizer()
       ..onTap = () {
         setState(() {
@@ -89,26 +101,20 @@ class _PostCardState extends State<PostCard> {
     }
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    _commentController.dispose();
-    _readMoreRecognizer.dispose();
-    _commentFocusNode.dispose();
-    super.dispose();
-  }
-
   void _initializeState() {
     if (widget.postSnapshot.exists && widget.postSnapshot.data() != null) {
       _postData = widget.postSnapshot.data() as Map<String, dynamic>;
+
       List<dynamic> likedByRaw = _postData!['likedBy'] ?? [];
       _likeCount = likedByRaw.length;
-      _isLiked =
-      _currentUserUid != null ? likedByRaw.contains(_currentUserUid) : false;
+      _isLiked = _currentUserUid != null
+          ? likedByRaw.contains(_currentUserUid)
+          : false;
       List<dynamic> imageUrlsRaw = _postData!['imageUrls'] ?? [];
       _imageUrls = imageUrlsRaw.map((e) => e.toString()).toList();
-      _commentCount = (_postData!['commentCount'] as num? ?? 0).toInt();
 
+      _commentCount = (_postData!['commentCount'] as num? ?? 0).toInt();
+      // ✨ Fetch owner data using ownerUid
       final ownerUid = _postData!['ownerUid'] as String?;
       if (ownerUid != null) {
         _ownerFuture = _firestoreService.getUserProfile(ownerUid);
@@ -120,6 +126,17 @@ class _PostCardState extends State<PostCard> {
       _imageUrls = [];
       _commentCount = 0;
     }
+  }
+
+  @override
+  void dispose() {
+    _commentFocusNode.unfocus();
+    _pageController.dispose();
+    _commentController.dispose();
+    _readMoreRecognizer.dispose();
+    // --- 3. อย่าลืม dispose FocusNode ---
+    _commentFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _toggleLike() async {
@@ -148,6 +165,7 @@ class _PostCardState extends State<PostCard> {
     if (commentText.isEmpty || _currentUserUid == null) return;
 
     final postRef = widget.postSnapshot.reference;
+
     await postRef.collection('comments').add({
       'commentText': commentText,
       'commenterUID': _currentUserUid,
@@ -161,6 +179,7 @@ class _PostCardState extends State<PostCard> {
     });
 
     _commentController.clear();
+    // ซ่อนคีย์บอร์ดหลังจากส่งคอมเมนต์
     _commentFocusNode.unfocus();
   }
 
@@ -168,8 +187,10 @@ class _PostCardState extends State<PostCard> {
     if (_commenterInfoCache.containsKey(uid)) {
       return _commenterInfoCache[uid]!;
     }
-    final userDoc =
-    await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     if (userDoc.exists) {
       final data = userDoc.data() as Map<String, dynamic>;
       final info = {
@@ -188,14 +209,17 @@ class _PostCardState extends State<PostCard> {
       builder: (context) => AlertDialog(
         title: const Text('ยืนยันการลบ'),
         content: const Text(
-            'คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้? การกระทำนี้ไม่สามารถย้อนกลับได้'),
+          'คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้? การกระทำนี้ไม่สามารถย้อนกลับได้',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('ลบ', style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ลบ', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -203,8 +227,9 @@ class _PostCardState extends State<PostCard> {
     if (confirmed != true) return;
 
     try {
-      final List<String> imageUrls =
-      List<String>.from(_postData?['imageUrls'] ?? []);
+      final List<String> imageUrls = List<String>.from(
+        _postData?['imageUrls'] ?? [],
+      );
 
       if (imageUrls.isNotEmpty) {
         List<Future<void>> deleteImageTasks = [];
@@ -215,8 +240,9 @@ class _PostCardState extends State<PostCard> {
         await Future.wait(deleteImageTasks);
       }
 
-      final commentsSnapshot =
-      await widget.postSnapshot.reference.collection('comments').get();
+      final commentsSnapshot = await widget.postSnapshot.reference
+          .collection('comments')
+          .get();
       WriteBatch batch = FirebaseFirestore.instance.batch();
       for (final doc in commentsSnapshot.docs) {
         batch.delete(doc.reference);
@@ -230,7 +256,9 @@ class _PostCardState extends State<PostCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("โพสต์ถูกลบแล้ว"), backgroundColor: Colors.green),
+            content: Text("โพสต์ถูกลบแล้ว"),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
@@ -238,52 +266,62 @@ class _PostCardState extends State<PostCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
-              backgroundColor: Colors.red),
+            content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
+  // --- ฟังก์ชันแสดงหน้าต่างคอมเมนต์ (แก้ไขใหม่ทั้งหมด) ---
   void _showCommentsSheet() {
     _commentFocusNode.unfocus();
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
+      isScrollControlled: true, // ทำให้ปรับขนาดได้เมื่อคีย์บอร์ดขึ้นมา
       backgroundColor: Colors.transparent,
       builder: (context) {
+        // ใช้ Padding เพื่อจัดการพื้นที่ที่ถูกคีย์บอร์ดดันขึ้นมา
         return Padding(
-          padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: DraggableScrollableSheet(
-            initialChildSize: 0.7,
-            minChildSize: 0.4,
-            maxChildSize: 0.9,
+            initialChildSize: 0.7, // ความสูงเริ่มต้น
+            minChildSize: 0.4, // ความสูงน้อยสุด
+            maxChildSize: 0.9, // ความสูงมากสุด
             builder: (_, controller) {
               return Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFF2d292a),
-                  borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
                   children: [
+                    // --- ส่วนหัว (Handle, Title, Divider) ---
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Container(
                         width: 40,
                         height: 5,
                         decoration: BoxDecoration(
-                            color: Colors.grey[700],
-                            borderRadius: BorderRadius.circular(10)),
+                          color: Colors.grey[700],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                    const Text("Comments",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Comments",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const Divider(color: Colors.grey, height: 24),
+
+                    // --- ส่วนแสดงผลคอมเมนต์ (เลื่อนได้) ---
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: widget.postSnapshot.reference
@@ -294,30 +332,37 @@ class _PostCardState extends State<PostCard> {
                           if (commentSnapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
-                                child: CircularProgressIndicator());
+                              child: CircularProgressIndicator(),
+                            );
                           }
                           if (!commentSnapshot.hasData ||
                               commentSnapshot.data!.docs.isEmpty) {
                             return const Center(
-                                child: Text("ยังไม่มีการคอมเม้นท์",
-                                    style: TextStyle(color: Colors.grey)));
+                              child: Text(
+                                "ยังไม่มีการคอมเม้นท์",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            );
                           }
+
                           return ListView.builder(
-                            controller: controller,
+                            controller:
+                                controller, // ใช้ controller จาก DraggableScrollableSheet
                             itemCount: commentSnapshot.data!.docs.length,
                             itemBuilder: (context, index) {
                               final commentData =
-                              commentSnapshot.data!.docs[index].data()
-                              as Map<String, dynamic>;
+                                  commentSnapshot.data!.docs[index].data()
+                                      as Map<String, dynamic>;
                               final commenterUid =
                                   commentData['commenterUID'] as String? ?? '';
                               final commentText =
                                   commentData['commentText'] as String? ??
-                                      '[No Text]';
+                                  '[No Text]';
                               final commentTimestamp =
-                              commentData['timestamp'] as Timestamp?;
-                              final commentTimeAgo =
-                              formatTimestamp(commentTimestamp);
+                                  commentData['timestamp'] as Timestamp?;
+                              final commentTimeAgo = formatTimestamp(
+                                commentTimestamp,
+                              );
                               if (commenterUid.isEmpty) {
                                 return const SizedBox.shrink();
                               }
@@ -329,30 +374,36 @@ class _PostCardState extends State<PostCard> {
                                     return ListTile(
                                       leading: const CircleAvatar(),
                                       title: Container(
-                                          width: 100,
-                                          height: 12,
-                                          color: Colors.grey.shade700),
+                                        width: 100,
+                                        height: 12,
+                                        color: Colors.grey.shade700,
+                                      ),
                                       subtitle: Container(
-                                          width: 150,
-                                          height: 10,
-                                          color: Colors.grey.shade800),
+                                        width: 150,
+                                        height: 10,
+                                        color: Colors.grey.shade800,
+                                      ),
                                     );
                                   }
-                                  final commenterInfo = userInfoSnapshot.data ??
+
+                                  final commenterInfo =
+                                      userInfoSnapshot.data ??
                                       {
                                         'displayName': 'Unknown',
-                                        'profileURL': ''
+                                        'profileURL': '',
                                       };
+
                                   return ListTile(
                                     leading: CircleAvatar(
-                                      backgroundImage: commenterInfo[
-                                      'profileURL']!
-                                          .isNotEmpty
+                                      backgroundImage:
+                                          commenterInfo['profileURL']!
+                                              .isNotEmpty
                                           ? NetworkImage(
-                                          commenterInfo['profileURL']!)
+                                              commenterInfo['profileURL']!,
+                                            )
                                           : null,
-                                      child: commenterInfo['profileURL']!
-                                          .isEmpty
+                                      child:
+                                          commenterInfo['profileURL']!.isEmpty
                                           ? const Icon(Icons.person)
                                           : null,
                                     ),
@@ -360,22 +411,30 @@ class _PostCardState extends State<PostCard> {
                                       children: [
                                         Flexible(
                                           child: Text(
-                                              commenterInfo['displayName']!,
-                                              style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold),
-                                              overflow: TextOverflow.ellipsis),
+                                            commenterInfo['displayName']!,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                         const SizedBox(width: 8),
-                                        Text(commentTimeAgo,
-                                            style: const TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 12)),
+                                        Text(
+                                          commentTimeAgo,
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                    subtitle: Text(commentText,
-                                        style: const TextStyle(
-                                            color: Colors.white70)),
+                                    subtitle: Text(
+                                      commentText,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
                                   );
                                 },
                               );
@@ -384,34 +443,49 @@ class _PostCardState extends State<PostCard> {
                         },
                       ),
                     ),
+
+                    // --- ส่วนช่องพิมพ์คอมเมนต์ (ตรึงอยู่ด้านล่าง) ---
                     const Divider(color: Colors.grey, height: 1),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Row(
                         children: [
+                          // const CircleAvatar(
+                          //   radius: 18,
+                          //   child: Icon(Icons.person), // TODO: รูปโปรไฟล์ผู้ใช้ปัจจุบัน
+                          // ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: TextField(
                               controller: _commentController,
+                              // autofocus: true, // <--- ลบบรรทัดนี้ออก
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 hintText: 'Add a comment...',
-                                hintStyle:
-                                TextStyle(color: Colors.grey.shade500),
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
                                 filled: true,
                                 fillColor: Colors.black.withOpacity(0.2),
                                 border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: BorderSide.none),
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide.none,
+                                ),
                                 contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 10),
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
                               ),
-                              onSubmitted: (text) => _postComment(),
+                              onSubmitted: (text) =>
+                                  _postComment(), // กด Enter ที่คีย์บอร์ดเพื่อส่ง
                             ),
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: Icon(Icons.send,
-                                color: Colors.yellow.shade700),
+                            icon: Icon(
+                              Icons.send,
+                              color: Colors.yellow.shade700,
+                            ),
                             onPressed: _postComment,
                           ),
                         ],
@@ -428,7 +502,7 @@ class _PostCardState extends State<PostCard> {
   }
 
   void _showPostOptions() {
-    _commentFocusNode.unfocus();
+    _commentFocusNode.unfocus(); // <<< เพิ่มเข้ามา
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF2d292a),
@@ -438,8 +512,10 @@ class _PostCardState extends State<PostCard> {
           children: <Widget>[
             ListTile(
               leading: const Icon(Icons.visibility_off, color: Colors.white),
-              title: const Text('Hide Post',
-                  style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Hide Post',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _hidePost();
@@ -448,8 +524,10 @@ class _PostCardState extends State<PostCard> {
             if (isOwner)
               ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text('Delete Post',
-                    style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Delete Post',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _deletePost();
@@ -464,34 +542,41 @@ class _PostCardState extends State<PostCard> {
   Future<void> _hidePost() async {
     if (_currentUserUid == null) return;
     final postId = widget.postSnapshot.id;
+
     try {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_currentUserUid)
           .update({
-        'hiddenPosts': FieldValue.arrayUnion([postId]),
-      });
+            'hiddenPosts': FieldValue.arrayUnion([postId]),
+          });
+
       if (mounted) {
         widget.onDelete();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text("Post hidden."),
-          action: SnackBarAction(
-            label: 'UNDO',
-            onPressed: () {
-              FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(_currentUserUid)
-                  .update({
-                'hiddenPosts': FieldValue.arrayRemove([postId]),
-              });
-            },
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Post hidden."),
+            action: SnackBarAction(
+              label: 'UNDO',
+              onPressed: () {
+                FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(_currentUserUid)
+                    .update({
+                      'hiddenPosts': FieldValue.arrayRemove([postId]),
+                    });
+              },
+            ),
           ),
-        ));
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Failed to hide post. Please try again.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to hide post. Please try again."),
+          ),
+        );
       }
     }
   }
@@ -509,21 +594,29 @@ class _PostCardState extends State<PostCard> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
+    final ownerDisplayName =
+        _postData!['ownerDisplayName'] as String? ?? 'Unknown';
+    final ownerProfileUrl = _postData!['ownerProfileUrl'] as String? ?? '';
     final caption = _postData!['caption'] as String? ?? '';
+
     final postTimestamp = _postData!['timestamp'] as Timestamp?;
     final timeAgo = formatTimestamp(postTimestamp);
 
     return Padding(
-      padding:
-      EdgeInsets.symmetric(vertical: 8.0, horizontal: screenWidth * 0.025),
+      padding: EdgeInsets.symmetric(
+        vertical: 8.0,
+        horizontal: screenWidth * 0.025,
+      ),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: const Color(0xFF2d292a),
         ),
+        // ✨ Use FutureBuilder to display owner info
         child: FutureBuilder<UserModel>(
           future: _ownerFuture,
           builder: (context, ownerSnapshot) {
+            // --- UI States for FutureBuilder ---
             Widget leadingWidget;
             String ownerDisplayName = 'Loading...';
 
@@ -543,30 +636,39 @@ class _PostCardState extends State<PostCard> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: owner.profileURL.isNotEmpty
-                      ? Image.network(owner.profileURL,
-                      width: 40, height: 40, fit: BoxFit.cover)
+                      ? Image.network(
+                          owner.profileURL,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                        )
                       : Container(
-                    width: 40,
-                    height: 40,
-                    color: const Color(0xFFF3B716),
-                    child: const Icon(Icons.person, color: Colors.black),
-                  ),
+                          width: 40,
+                          height: 40,
+                          color: const Color(0xFFF3B716),
+                          child: const Icon(Icons.person, color: Colors.black),
+                        ),
                 ),
               );
             } else if (ownerSnapshot.hasError) {
               ownerDisplayName = 'Error';
-              leadingWidget =
-              const Icon(Icons.error_outline, color: Colors.red);
+              leadingWidget = const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+              );
             } else {
+              // Loading state
               leadingWidget = Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade800,
-                    borderRadius: BorderRadius.circular(8.0)),
+                  color: Colors.grey.shade800,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
               );
             }
 
+            // --- Main Column ---
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -574,20 +676,29 @@ class _PostCardState extends State<PostCard> {
                 // ✅ ส่วนหัวของโพสต์
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.04, vertical: 8.0),
+                    horizontal: screenWidth * 0.04,
+                    vertical: 8.0,
+                  ),
                   leading: leadingWidget,
                   title: GestureDetector(
                     onTap: navigateToProfile,
                     child: Row(
                       children: [
-                        Text(ownerDisplayName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
+                        Text(
+                          ownerDisplayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Text(timeAgo,
-                            style: TextStyle(
-                                color: Colors.grey.shade400, fontSize: 12)),
+                        Text(
+                          timeAgo,
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -603,7 +714,9 @@ class _PostCardState extends State<PostCard> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20.0, vertical: 4.0),
+                          horizontal: 20.0,
+                          vertical: 4.0,
+                        ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: AspectRatio(
@@ -617,7 +730,8 @@ class _PostCardState extends State<PostCard> {
                               },
                               children: _imageUrls.map((imageUrl) {
                                 final index = _imageUrls.indexOf(imageUrl);
-                                final heroTag = '${widget.postSnapshot.id}-$index';
+                                final heroTag =
+                                    '${widget.postSnapshot.id}-$index';
 
                                 return GestureDetector(
                                   onTap: () {
@@ -642,16 +756,21 @@ class _PostCardState extends State<PostCard> {
                                             Container(
                                               color: Colors.grey[850],
                                               child: const Center(
-                                                child: CircularProgressIndicator(
-                                                    color: Colors.white,
-                                                    strokeWidth: 2.0),
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2.0,
+                                                    ),
                                               ),
                                             ),
                                         errorWidget: (context, url, error) =>
                                             Container(
                                               color: Colors.grey[850],
-                                              child: const Icon(Icons.broken_image,
-                                                  color: Colors.grey, size: 50),
+                                              child: const Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                                size: 50,
+                                              ),
                                             ),
                                       ),
                                     ),
@@ -668,14 +787,20 @@ class _PostCardState extends State<PostCard> {
                           right: 25,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(20)),
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             child: Text(
-                                '${_currentPageIndex + 1}/${_imageUrls.length}',
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 12)),
+                              '${_currentPageIndex + 1}/${_imageUrls.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -684,27 +809,39 @@ class _PostCardState extends State<PostCard> {
                   AspectRatio(
                     aspectRatio: 1,
                     child: Container(
-                        color: Colors.grey[800],
-                        child: const Center(
-                            child: Icon(Icons.image_not_supported,
-                                color: Colors.grey, size: 50))),
+                      color: Colors.grey[800],
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                          size: 50,
+                        ),
+                      ),
+                    ),
                   ),
 
                 // ✅ ส่วนปุ่ม Actions (Like, Comment)
                 Padding(
                   padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.02, vertical: 8),
+                    horizontal: screenWidth * 0.02,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(
-                            _isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: _isLiked ? Colors.red : Colors.white),
+                        icon: FaIcon(
+                          _isLiked
+                              ? FontAwesomeIcons.solidFaceSmileBeam
+                              : FontAwesomeIcons.faceSmileBeam,
+                          color: _isLiked ? Color(0xFFF3B716) : Colors.white,
+                        ),
                         onPressed: _toggleLike,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.chat_bubble_outline,
-                            color: Colors.white),
+                        icon: const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Colors.white,
+                        ),
                         onPressed: _showCommentsSheet,
                       ),
                       Expanded(
@@ -717,17 +854,24 @@ class _PostCardState extends State<PostCard> {
                             decoration: InputDecoration(
                               hintText: 'Add a comment...',
                               hintStyle: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 14),
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
                               filled: true,
                               fillColor: Colors.grey.shade800,
-                              contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: BorderSide.none),
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
                               suffixIcon: IconButton(
-                                icon: Icon(Icons.send,
-                                    color: Colors.yellow.shade700, size: 20),
+                                icon: Icon(
+                                  Icons.send,
+                                  color: Colors.yellow.shade700,
+                                  size: 20,
+                                ),
                                 onPressed: _postComment,
                               ),
                             ),
@@ -737,39 +881,45 @@ class _PostCardState extends State<PostCard> {
                     ],
                   ),
                 ),
-
                 // ✅ ส่วนแสดง Like และ Caption
                 Padding(
-                  padding:
-                  EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                  child: Text('$_likeCount likes',
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  child: Text(
+                    '$_likeCount likes',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Padding(
-                  padding:
-                  EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                   child: Text.rich(
                     TextSpan(
                       children: [
                         TextSpan(
-                            text: "$ownerDisplayName ",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                          text: "$ownerDisplayName ",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         TextSpan(
-                            text: _isExpanded
-                                ? caption
-                                : truncateText(caption, 60),
-                            style: const TextStyle(color: Colors.white70)),
+                          text: _isExpanded
+                              ? caption
+                              : truncateText(caption, 60),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                         if (caption.length > 100)
                           TextSpan(
-                            text:
-                            _isExpanded ? ' \nย่อข้อความ' : ' \nอ่านเพิ่มเติม',
+                            text: _isExpanded
+                                ? ' \nย่อข้อความ'
+                                : ' \nอ่านเพิ่มเติม',
                             style: const TextStyle(
-                                color: Colors.yellow,
-                                fontWeight: FontWeight.bold),
+                              color: Colors.yellow,
+                              fontWeight: FontWeight.bold,
+                            ),
                             recognizer: _readMoreRecognizer,
                           ),
                       ],
@@ -780,7 +930,9 @@ class _PostCardState extends State<PostCard> {
                 // ✅ ส่วนแสดง "View all comments"
                 Padding(
                   padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.04, vertical: 8),
+                    horizontal: screenWidth * 0.04,
+                    vertical: 8,
+                  ),
                   child: InkWell(
                     onTap: _showCommentsSheet,
                     child: StreamBuilder<QuerySnapshot>(
@@ -791,8 +943,10 @@ class _PostCardState extends State<PostCard> {
                         final count =
                             snapshot.data?.docs.length ?? _commentCount;
                         if (count == 0) return const SizedBox.shrink();
-                        return Text('View all $count comments',
-                            style: const TextStyle(color: Colors.grey));
+                        return Text(
+                          'View all $count comments',
+                          style: const TextStyle(color: Colors.grey),
+                        );
                       },
                     ),
                   ),

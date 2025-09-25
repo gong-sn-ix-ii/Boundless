@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 import '../CreateAuctionPage.dart';
-import '../Services/Service.dart';
-import '../mixins/notification_listener_mixin.dart';
+import '../Services/notification_service.dart';
 import '../models/user_model.dart';
+import '../services/Service.dart';
+import '../mixins/notification_listener_mixin.dart';
 import 'auction_detail_page.dart';
 
 class AuctionPage extends StatefulWidget {
@@ -31,7 +32,14 @@ class _AuctionPageState extends State<AuctionPage> with NotificationListenerMixi
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-
+        title: Text(
+          'Boundless',
+          style: TextStyle(
+            color: Colors.yellow,
+            fontWeight: FontWeight.bold,
+            fontSize: screenWidth * 0.05,
+          ),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -128,6 +136,7 @@ class _AuctionPageState extends State<AuctionPage> with NotificationListenerMixi
   }
 }
 
+// --- ✨ AuctionCard ฉบับแก้ไข ---
 class AuctionCard extends StatefulWidget {
   final DocumentSnapshot auctionDoc;
   const AuctionCard({super.key, required this.auctionDoc});
@@ -141,9 +150,13 @@ class _AuctionCardState extends State<AuctionCard> {
   Duration _countdown = Duration.zero;
   String _countdownStatusText = "กำลังซิงค์เวลา...";
   bool _isAuctionActive = false;
+  bool _notificationSent = false; // ✨ 2. เพิ่ม State ป้องกันการส่งซ้ำ
 
+  // ✨ 3. สร้าง Instance ของ Service ที่จะใช้
   final FirestoreService _firestoreService = FirestoreService();
+  final NotificationService _notificationService = NotificationService();
   UserModel? _owner;
+
 
   @override
   void initState() {
@@ -203,6 +216,7 @@ class _AuctionCardState extends State<AuctionCard> {
       else {
         // เมื่อการประมูลจบ ก็แค่เปลี่ยนสถานะใน UI
         // Cloud Function จะเป็นตัวจัดการสร้าง Notification ให้เอง
+
         setState(() {
           _isAuctionActive = false;
           _countdown = Duration.zero;
@@ -227,7 +241,6 @@ class _AuctionCardState extends State<AuctionCard> {
 
   @override
   Widget build(BuildContext context) {
-    // ... โค้ดส่วน build เหมือนเดิมทั้งหมด ไม่ต้องแก้ไข ...
     final screenWidth = MediaQuery.of(context).size.width;
     final auctionData = widget.auctionDoc.data() as Map<String, dynamic>? ?? {};
     final String title = auctionData['title'] ?? 'ไม่มีชื่อ';

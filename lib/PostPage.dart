@@ -15,7 +15,7 @@ class PostPage extends StatelessWidget {
         backgroundColor: Colors.black,
         title: const Text(
           'Boundless',
-          style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Color(0xFFF3B716), fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(

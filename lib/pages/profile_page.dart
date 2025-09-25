@@ -1,17 +1,18 @@
 // lib/pages/profile_page.dart
 
 import 'package:boundless/pages/user_post_feed_page.dart';
-import 'package:boundless/services/Service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:boundless/Services/Service.dart';
 import '../Chat.dart';
 import 'FollowListPage.dart';
 import 'edit_profile_page.dart';
 import 'setting_page.dart';
 
 class ProfilePage extends StatefulWidget {
+  // Parameter to accept the userId of the profile to display
   final String? userId;
   const ProfilePage({super.key, this.userId});
 
@@ -27,6 +28,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    // If no userId is passed, use the current user's id (to show your own profile)
     _profileUserId = widget.userId ?? _currentUserUid ?? '';
   }
 
@@ -39,17 +41,18 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     }
   }
-
+  // Function to handle Follow/Unfollow logic
   Future<void> _handleFollowUnfollow(bool isCurrentlyFollowing) async {
     if (_currentUserUid == null) return;
-
     final userRef =
     FirebaseFirestore.instance.collection('users').doc(_profileUserId);
     final currentUserRef =
     FirebaseFirestore.instance.collection('users').doc(_currentUserUid);
+
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
     if (isCurrentlyFollowing) {
+      // --- Unfollow ---
       batch.update(userRef, {
         'followers': FieldValue.arrayRemove([_currentUserUid])
       });
@@ -57,6 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
         'following': FieldValue.arrayRemove([_profileUserId])
       });
     } else {
+      // --- Follow ---
       batch.update(userRef, {
         'followers': FieldValue.arrayUnion([_currentUserUid])
       });
@@ -148,7 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: 220,
                 width: double.infinity,
                 child: coverUrl.isNotEmpty
-                    ? CachedNetworkImage(
+                     ? CachedNetworkImage(
                     imageUrl: coverUrl,
                     fit: BoxFit.cover,
                     placeholder: (c, u) => Container(color: Colors.grey.shade900))
@@ -233,6 +237,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                     'Following', followingCount.toString())),
                           ],
                         ),
+
+                        // ✅✅✅ ย้ายปุ่มมาไว้ตรงนี้ ✅✅✅
+                        //if (!isMyProfile)
                         if (isMyProfile)
                           Padding(
                             padding: const EdgeInsets.symmetric(
@@ -252,18 +259,19 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                           ),
-                        if (!isMyProfile)
+
+                           if (!isMyProfile)
                           Padding(
                             padding: const EdgeInsets.only(
                                 left: 20, right: 20, top: 16, bottom: 4),
-                            child: Row(
+                                child: Row(
                               children: [
                                 Expanded(
                                   child: _buildActionButton(
                                     text: isFollowing ? 'Unfollow' : 'Follow',
                                     onPressed: () =>
                                         _handleFollowUnfollow(isFollowing),
-                                    isPrimary: !isFollowing,
+                                        isPrimary: !isFollowing,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -271,22 +279,24 @@ class _ProfilePageState extends State<ProfilePage> {
                                     child: _buildActionButton(
                                         text: "Message",
                                         onPressed: _navigateToChat)),
-                              ],
+                                        ],
                             ),
                           ),
                         const SizedBox(height: 20),
                         if (bio.isNotEmpty)
                           Padding(
-                            padding:
+                             padding:
                             const EdgeInsets.symmetric(horizontal: 20),
                             child: Text(bio,
                                 style: const TextStyle(
                                     color: Colors.white70, fontSize: 14),
                                 textAlign: TextAlign.center),
                           ),
+
                         const SizedBox(height: 20),
                         const Divider(color: Colors.white24),
                         const SizedBox(height: 10),
+
                         postSnapshot.connectionState ==
                             ConnectionState.waiting
                             ? const CircularProgressIndicator(
@@ -318,13 +328,12 @@ class _ProfilePageState extends State<ProfilePage> {
                               return Container(
                                   color: Colors.grey.shade800);
                             }
-
                             return GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
+                                     builder: (context) =>
                                         UserPostFeedPage(
                                           userId: _profileUserId,
                                           userName: displayName,

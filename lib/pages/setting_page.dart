@@ -1,4 +1,5 @@
 // settings_page.dart
+import 'package:boundless/pages/security_page.dart';
 import 'package:flutter/material.dart';
 import 'edit_profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,49 +36,56 @@ class SettingsPage extends StatelessWidget {
             leading: Icon(Icons.lock, color: Colors.white),
             title: Text("Security", style: TextStyle(color: Colors.white)),
             onTap: () {
-              // ยังไม่ทำหน้านี้
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("ยังไม่ได้ทำหน้านี้นะ ")),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SecurityPage()),
               );
             },
           ),
           ListTile(
-            leading: Icon(Icons.logout, color: Colors.white),
+            leading: Icon(Icons.logout, color: Colors.red),
             title: Text("Logout", style: TextStyle(color: Colors.white)),
-            onTap: () async {
-              // ยังไม่ได้ผูกระบบ auth
-              // Navigator.pop(context);
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   SnackBar(content: Text("ออกจากระบบเรียบร้อย")),
-              // );
-
-              try {
-                // --- 1. สั่งให้ Firebase ทำการออกจากระบบ ---
-                await FirebaseAuth.instance.signOut();
-
-                print("User signed out successfully.");
-
-                // --- 2. (สำคัญมาก) นำผู้ใช้กลับไปที่หน้า Login ---
-                // ตรวจสอบ context ก่อนใช้งาน (เป็น Best Practice ป้องกัน Error)
-                if (!context.mounted) return;
-
-                // นำทางกลับไปหน้า Login และล้างหน้าจอก่อนหน้าทั้งหมดทิ้งไป
-                // เพื่อไม่ให้ผู้ใช้กด 'ย้อนกลับ' กลับมาหน้านี้ได้อีก
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => MyApp()), // <-- แก้เป็นหน้า Login ของคุณ
-                      (Route<dynamic> route) => false, // คำสั่งให้ลบ Route เก่าทั้งหมด
-                );
-
-              } catch (e) {
-                // จัดการ Error ที่อาจเกิดขึ้น (เช่น ปัญหา Network)
-                print("Error signing out: $e");
-
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("เกิดข้อผิดพลาดในการออกจากระบบ: $e")),
-                );
-              }
+            onTap: () {
+              // แสดงกล่องโต้ตอบเพื่อยืนยัน
+              showDialog(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return AlertDialog(
+                    backgroundColor: Colors.grey[850],
+                    title: Text("ต้องการออกจากระบบใช่หรือไม่?", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    content: Text("Are you sure you want to logout?", style: TextStyle(color: Colors.white70)),
+                    actions: <Widget>[
+                      TextButton(
+                        child: Text("ยกเลิก", style: TextStyle(color: Colors.white)),
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop(); // ปิดแค่ Dialog
+                        },
+                      ),
+                      TextButton(
+                        child: Text("ออกจากระบบ", style: TextStyle(color: Colors.red)),
+                        onPressed: () async {
+                          // --- ใส่โค้ด Logout เดิมของคุณไว้ที่นี่ ---
+                          try {
+                            await FirebaseAuth.instance.signOut();
+                            if (!context.mounted) return;
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => MyApp()),
+                                  (Route<dynamic> route) => false,
+                            );
+                          } catch (e) {
+                            print("Error signing out: $e");
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("เกิดข้อผิดพลาด: $e")),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
             },
           ),
         ],

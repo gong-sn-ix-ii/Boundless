@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.gong_kan.boundless"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.3.11579264"
+    
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
