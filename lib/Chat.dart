@@ -106,7 +106,7 @@ class _ChatState extends State<Chat> {
   Future<String?> _generateToken(String channelId) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.33:3000/agora/token'),
+        Uri.parse('https://agora-qca2libyva-uc.a.run.app'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'channelName': widget.chatRoomID, 'uid': 0}),
       );
