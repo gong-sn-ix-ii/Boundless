@@ -2,9 +2,9 @@
 
 # 🌐 Boundless
 
-### Real-time Auction Marketplace & Social Network
+### แพลตฟอร์ม Real-time Auction & Social Network บนมือถือ
 
-*A mobile-first lifestyle app where bidding meets community.*
+*แอปประมูลที่รวมคอมมิวนิตี้ไว้ในที่เดียว — ประมูลสด แชท ติดตาม กดไลค์ ครบจบในแอปเดียว*
 
 [![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
@@ -13,106 +13,108 @@
 
 [![Status](https://img.shields.io/badge/status-completed-success?style=flat-square)](https://github.com/gong-sn-ix-ii/Boundless)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-blueviolet?style=flat-square)](https://flutter.dev)
-[![Made by](https://img.shields.io/badge/made%20by-Kitsada%20Khamnaun-FFD700?style=flat-square)](https://github.com/gong-sn-ix-ii)
+[![Developer](https://img.shields.io/badge/developer-Kitsada%20Khamnuan-FFD700?style=flat-square)](https://gong-ix-ii-dev.com)
 
 </div>
 
 ---
 
-## ✨ Overview
+## ✨ ภาพรวมโปรเจกต์
 
-**Boundless** is a real-time auction marketplace fused with a social network — combining live bidding, social feeds, chat, follows, and instant winner notifications into a single Flutter app. Built on Firebase's real-time infrastructure, every bid, post, and notification updates instantly across all connected users without a refresh.
+**Boundless** คือแอปพลิเคชันประมูลสินค้าและ Social Network แบบ **Real-time** ที่รวมทุกไลฟ์สไตล์ไว้ในที่เดียว ผู้ใช้สามารถประมูลสินค้าแบบสด ๆ พร้อมกับติดตามเพื่อน กดไลค์ แชท และโพสต์ได้ในแอปเดียว
 
-> 🇹🇭 **ภาษาไทย**
-> แอปพลิเคชันประมูลสินค้าและโซเชียลเน็ตเวิร์กแบบ **Real-time** รวมทุกไลฟ์สไตล์ไว้ในที่เดียว — ทั้งระบบติดตาม, กดไลค์, แชทสด, โพสต์, และแจ้งเตือนผู้ชนะประมูลทันที พัฒนาด้วย Flutter + Firebase ทำให้ทุกการเสนอราคาและการแจ้งเตือนอัปเดตได้ทันทีโดยไม่ต้องรีเฟรชหน้าจอ
+ระบบทำงานบนสถาปัตยกรรม **Firebase Real-time Database** ทำให้ทุกการเสนอราคา (Bid), ข้อความแชท, และการแจ้งเตือนผู้ชนะประมูล อัปเดตถึงผู้ใช้ทุกคนทันที **โดยไม่ต้องรีเฟรชหน้าจอ**
+
+> 💡 **จุดเด่น**
+> ผสมประสบการณ์ของ Marketplace + Social Media เข้าด้วยกัน — ผู้ใช้ไม่ได้แค่ซื้อขาย แต่สร้างคอมมิวนิตี้ติดตามผู้ขายที่ชอบ และมีปฏิสัมพันธ์กันได้ตลอดเวลา
 
 ---
 
-## 🎯 Key Features
+## 🎯 ฟีเจอร์หลัก
 
-| Feature | Description |
+| ฟีเจอร์ | รายละเอียด |
 |---|---|
-| ⚡ **Real-time Bidding** | Firebase real-time database pushes bid updates instantly to every participant — no refresh needed. |
-| 💬 **Social Connect** | Built-in social layer: follow users, like posts, chat, and share auction listings. |
-| 🔔 **Smart Notifications** | Intelligent alerts when someone outbids you, or when you win an auction. |
-| 👤 **Profile Management** | Manage personal info, post history, follower count, and listing dashboard. |
-| 📦 **Listing Management** | Create, monitor, and edit auction listings with live status tracking. |
-| 🏆 **Winner System** | Automatic winner determination with real-time push notifications to all bidders. |
+| ⚡ **Real-time Bidding** | ระบบเสนอราคาแบบ Real-time ผ่าน Firebase ทุกการ Bid อัปเดตทันทีให้ผู้เข้าร่วมประมูลทุกคนเห็น |
+| 💬 **Social Connect** | ระบบโซเชียลในตัว — ติดตามผู้ใช้, กดไลค์โพสต์, แชทแบบสด, และแชร์รายการประมูล |
+| 🔔 **Smart Notifications** | แจ้งเตือนอัจฉริยะเมื่อมีคนเสนอราคาสูงกว่า หรือเมื่อคุณเป็นผู้ชนะการประมูล |
+| 👤 **Profile Management** | จัดการข้อมูลส่วนตัว, ประวัติโพสต์, จำนวนผู้ติดตาม และ Dashboard ของรายการประมูล |
+| 📦 **Listing Management** | สร้าง, จัดการ, และตรวจสอบสถานะรายการประมูลแบบเรียลไทม์ |
+| 🏆 **Auto Winner System** | ระบบประกาศผู้ชนะอัตโนมัติ พร้อมส่ง Push Notification ให้ผู้เข้าร่วมประมูลทุกคน |
 
 ---
 
-## 📱 App Screens
+## 📱 หน้าจอการใช้งาน (10 หน้า)
 
 <table>
 <tr>
 <td width="50%">
 
-### 1. Welcome Screen
+### 1. หน้าแรก (Welcome)
 <img src="docs/screenshots/1.webp" alt="Welcome Screen" width="100%"/>
 
-*หน้าหลักสำหรับเข้าสู่ระบบหรือสมัครสมาชิก*
+หน้าหลักสำหรับเข้าสู่ระบบหรือสมัครสมาชิก
 
 </td>
 <td width="50%">
 
-### 2. Account Registration
+### 2. สมัครสมาชิก
 <img src="docs/screenshots/2.webp" alt="Account Registration" width="100%"/>
 
-*หน้าลงทะเบียนและสมัครบัญชีผู้ใช้งานใหม่*
+หน้าลงทะเบียนและสร้างบัญชีผู้ใช้งานใหม่
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 3. Social Interaction Feed
+### 3. โซเชียลฟีด
 <img src="docs/screenshots/3.webp" alt="Social Feed" width="100%"/>
 
-*แสดงโซเชียลฟีดและโพสต์ต่างๆ ของผู้ใช้งาน*
+แสดงฟีดและโพสต์ต่าง ๆ ของผู้ใช้ที่ติดตาม
 
 </td>
 <td width="50%">
 
-### 4. Auction Marketplace
+### 4. ตลาดประมูล (Marketplace)
 <img src="docs/screenshots/4.webp" alt="Auction Marketplace" width="100%"/>
 
-*เข้าร่วมการประมูลสินค้า รูปภาพ และรายการอื่นๆ*
+เข้าร่วมการประมูลสินค้า รูปภาพ และรายการต่าง ๆ
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 5. User Profile Management
+### 5. โปรไฟล์ผู้ใช้
 <img src="docs/screenshots/5.webp" alt="Profile Management" width="100%"/>
 
-*จัดการข้อมูลส่วนตัว ข้อมูลโพสต์ และจำนวนผู้ติดตาม*
+จัดการข้อมูลส่วนตัว ข้อมูลโพสต์ และจำนวนผู้ติดตาม
 
 </td>
 <td width="50%">
 
-### 6. Live Auction Details
+### 6. ห้องประมูลสด (Live Auction)
 <img src="docs/screenshots/6.webp" alt="Live Auction Details" width="100%"/>
 
-*เข้าร่วมการประมูล พร้อมรายละเอียดการเสนอราคา (Bid) และราคาปัจจุบัน*
+เข้าร่วมการประมูล พร้อมแสดงรายละเอียดการ Bid และราคาปัจจุบัน
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 7. Create Auction Listing
+### 7. สร้างรายการประมูล
 <img src="docs/screenshots/7.webp" alt="Create Listing" width="100%"/>
 
-*ตั้งค่าและจัดการข้อมูลเพื่อเปิดประมูลสินค้า*
+ตั้งค่าและจัดการข้อมูลเพื่อเปิดประมูลสินค้าใหม่
 
 </td>
 <td width="50%">
 
-### 8. Listing Status Processing
+### 8. สถานะรายการ
 <img src="docs/screenshots/8.webp" alt="Listing Status" width="100%"/>
 
-*แสดงสถานะการสร้างโพสต์ประมูลสินค้าเข้าสู่ระบบ*
+แสดงสถานะการสร้างโพสต์ประมูลสินค้าเข้าสู่ระบบ
 
 </td>
 </tr>
@@ -122,15 +124,15 @@
 ### 9. Auction Dashboard
 <img src="docs/screenshots/9.webp" alt="Auction Dashboard" width="100%"/>
 
-*ผู้จัดการประมูลแก้ไขและตรวจสอบสถานะการประมูลล่าสุดได้*
+ผู้จัดการประมูลสามารถแก้ไขและตรวจสอบสถานะการประมูลล่าสุด
 
 </td>
 <td width="50%">
 
-### 10. Results & Notifications
+### 10. ผลประมูล & แจ้งเตือน
 <img src="docs/screenshots/10.webp" alt="Results & Notifications" width="100%"/>
 
-*แสดงผลผู้ชนะและส่งการแจ้งเตือนแบบ Real-Time ทันที*
+แสดงผลผู้ชนะและส่ง Notification แบบ Real-time ทันที
 
 </td>
 </tr>
@@ -138,68 +140,68 @@
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 เทคโนโลยีที่ใช้
 
 <div align="center">
 
-| | Technology | Purpose |
+| | Technology | บทบาท |
 |---|---|---|
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flutter/flutter-original.svg" width="40"/> | **Flutter** | Cross-platform UI framework |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg" width="40"/> | **Dart** | Application logic language |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg" width="40"/> | **Firebase** | Real-time DB, Auth, Cloud Messaging |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/androidstudio/androidstudio-original.svg" width="40"/> | **Android Studio** | Primary IDE |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flutter/flutter-original.svg" width="40"/> | **Flutter** | Cross-platform UI Framework สำหรับ Android & iOS |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg" width="40"/> | **Dart** | ภาษาหลักในการเขียน Logic ของแอป |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg" width="40"/> | **Firebase** | Real-time Database, Authentication, Cloud Messaging |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/androidstudio/androidstudio-original.svg" width="40"/> | **Android Studio** | IDE หลักสำหรับพัฒนา |
 
 </div>
 
 ---
 
-## 🚀 Getting Started
+## 🚀 วิธีติดตั้งและรันโปรเจกต์
 
-### Prerequisites
+### สิ่งที่ต้องเตรียม (Prerequisites)
 
 - Flutter SDK `>= 3.0.0`
 - Dart SDK `>= 3.0.0`
-- Android Studio / VS Code with Flutter plugin
-- Firebase project (Authentication, Firestore, Cloud Messaging enabled)
+- Android Studio หรือ VS Code (ติดตั้ง Flutter plugin แล้ว)
+- Firebase Project ที่เปิด Authentication, Firestore, Cloud Messaging
 
-### Installation
+### ขั้นตอนการติดตั้ง
 
 ```bash
-# 1. Clone the repository
+# 1. Clone repository
 git clone https://github.com/gong-sn-ix-ii/Boundless.git
 cd Boundless
 
-# 2. Install dependencies
+# 2. ติดตั้ง dependencies ทั้งหมด
 flutter pub get
 
-# 3. Connect your Firebase project
-# Drop google-services.json into android/app/
-# Drop GoogleService-Info.plist into ios/Runner/
+# 3. เชื่อมต่อ Firebase Project ของคุณ
+# วาง google-services.json ไว้ที่ android/app/
+# วาง GoogleService-Info.plist ไว้ที่ ios/Runner/
 
-# 4. Run the app
+# 4. รันแอปพลิเคชัน
 flutter run
 ```
 
-### Build for Release
+### Build สำหรับ Production
 
 ```bash
-flutter build apk --release       # Android
-flutter build ios --release       # iOS
+flutter build apk --release       # สำหรับ Android
+flutter build ios --release       # สำหรับ iOS
 ```
 
 ---
 
-## 📂 Project Structure
+## 📂 โครงสร้างโปรเจกต์
 
 ```
 Boundless/
 ├── lib/
-│   ├── main.dart                 # App entry point
-│   ├── screens/                  # 10 main screens
-│   ├── widgets/                  # Reusable UI components
-│   ├── services/                 # Firebase + business logic
-│   ├── models/                   # Data models
-│   └── utils/                    # Helpers & constants
+│   ├── main.dart                 # จุดเริ่มต้นของแอป
+│   ├── screens/                  # 10 หน้าจอหลัก
+│   ├── widgets/                  # UI Components ที่ใช้ซ้ำ
+│   ├── services/                 # Firebase + Business Logic
+│   ├── models/                   # Data Models
+│   └── utils/                    # Helpers & Constants
 ├── assets/
 │   └── images/
 ├── android/
@@ -209,18 +211,21 @@ Boundless/
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 ผู้พัฒนา
 
 <table>
 <tr>
 <td>
 
-**Kitsada Khamnaun** (กฤษฎา คำนวน)
+### Kitsada Khamnuan (กฤษฎา คำนวน)
+
 *Junior Software Engineer · Mobile Developer · Cybersecurity Enthusiast*
 
-🌐 [Portfolio Website](https://github.com/gong-sn-ix-ii)
-💼 GitHub: [@gong-sn-ix-ii](https://github.com/gong-sn-ix-ii)
-📍 Chonburi / Bangkok, Thailand
+📍 ชลบุรี / กรุงเทพฯ, ประเทศไทย
+
+🌐 **Portfolio:** [gong-ix-ii-dev.com](https://gong-ix-ii-dev.com)
+💼 **GitHub:** [@gong-sn-ix-ii](https://github.com/gong-sn-ix-ii)
+💬 **LinkedIn:** [Kitsada Khamnuan](https://www.linkedin.com/in/kitsada-khamnuan-2a6729407/)
 
 </td>
 </tr>
@@ -230,29 +235,28 @@ Boundless/
 
 ## 📄 License
 
-This project is released for educational and portfolio purposes. Please contact the author before commercial use.
+โปรเจกต์นี้พัฒนาเพื่อการศึกษาและใช้เป็น Portfolio กรุณาติดต่อผู้พัฒนาก่อนนำไปใช้ในเชิงพาณิชย์
 
 ---
 
 <div align="center">
 
-**⭐ If you like this project, give it a star! ⭐**
+**⭐ ถ้าคุณชอบโปรเจกต์นี้ ฝากกด Star เป็นกำลังใจให้ผู้พัฒนาด้วยนะครับ ⭐**
 
-Made with 💛 by [Kitsada Khamnaun](https://github.com/gong-sn-ix-ii)
+Made with 💛 by [Kitsada Khamnuan](https://gong-ix-ii-dev.com)
 
 </div>
 
 ---
 
-> ### 📌 Setup Notes (delete this section after setup)
+> ### 📌 หมายเหตุการ Setup (ลบ section นี้ก่อน commit จริง)
 >
-> Screenshots are referenced from `docs/screenshots/1.webp` through `10.webp`. Before pushing, copy the 10 `.webp` files from your Portfolio repo:
+> รูปภาพอ้างอิงจาก `docs/screenshots/1.webp` ถึง `10.webp` ก่อน push ให้ก๊อปรูป 10 ไฟล์ `.webp` จาก Portfolio repo มาวางไว้ก่อน:
 >
 > ```
-> Portfolio/src/assets/images/projects/boundless/1-10.webp
->     ↓
-> Boundless/docs/screenshots/1-10.webp
+> จาก: Portfolio/src/assets/images/projects/boundless/1-10.webp
+> ไปยัง: Boundless/docs/screenshots/1-10.webp
 > ```
 >
-> Alternative: replace `docs/screenshots/N.webp` with the raw Portfolio URL:
+> **ทางเลือก:** ถ้าไม่อยากก๊อปรูป สามารถเปลี่ยน `docs/screenshots/N.webp` เป็น raw URL ของ Portfolio repo ตรง ๆ:
 > `https://raw.githubusercontent.com/gong-sn-ix-ii/Portfolio/main/src/assets/images/projects/boundless/N.webp`
