@@ -248,15 +248,3 @@ Made with 💛 by [Kitsada Khamnuan](https://gong-ix-ii-dev.com)
 </div>
 
 ---
-
-> ### 📌 หมายเหตุการ Setup (ลบ section นี้ก่อน commit จริง)
->
-> รูปภาพอ้างอิงจาก `docs/screenshots/1.webp` ถึง `10.webp` ก่อน push ให้ก๊อปรูป 10 ไฟล์ `.webp` จาก Portfolio repo มาวางไว้ก่อน:
->
-> ```
-> จาก: Portfolio/src/assets/images/projects/boundless/1-10.webp
-> ไปยัง: Boundless/docs/screenshots/1-10.webp
-> ```
->
-> **ทางเลือก:** ถ้าไม่อยากก๊อปรูป สามารถเปลี่ยน `docs/screenshots/N.webp` เป็น raw URL ของ Portfolio repo ตรง ๆ:
-> `https://raw.githubusercontent.com/gong-sn-ix-ii/Portfolio/main/src/assets/images/projects/boundless/N.webp`
